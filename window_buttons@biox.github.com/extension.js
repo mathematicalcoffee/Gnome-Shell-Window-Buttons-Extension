@@ -304,8 +304,8 @@ __proto__: PanelMenu.ButtonBox.prototype,
 
     enable: function() {
         let children = Main.panel._rightBox.get_children();
-        Main.panel._rightBox.insert_actor(this.rightActor, children.length);
-        Main.panel._leftBox.insert_actor(this.leftActor, 0);
+        Main.panel._rightBox.add_actor(this.rightActor, children.length);
+        Main.panel._leftBox.add_actor(this.leftActor, 0);
     },
 
     disable: function() {
