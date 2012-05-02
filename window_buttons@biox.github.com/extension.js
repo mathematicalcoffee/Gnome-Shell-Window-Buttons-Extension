@@ -163,7 +163,7 @@ __proto__: PanelMenu.ButtonBox.prototype,
         if (orderRight != "") {
             for ( let i=0; i<orderRight.length; ++i ) {
                 let button = new St.Button({ style_class: orderRight[i]  + ' window-button' , track_hover: true } ); 
-                button.set_tooltip_text( buttonlist[orderRight[i]][0] );
+                //button.set_tooltip_text( buttonlist[orderRight[i]][0] );
                 button.connect('button-press-event', Lang.bind(this, buttonlist[orderRight[i]][1]));
                 this.rightBox.add_actor(button);
             }
@@ -172,7 +172,7 @@ __proto__: PanelMenu.ButtonBox.prototype,
         if (orderLeft != "") {
             for ( let i=0; i<orderLeft.length; ++i ) {
                 let button = new St.Button({ style_class: orderLeft[i] + ' window-button' } ); 
-                button.set_tooltip_text( buttonlist[orderLeft[i]][0] );
+                //button.set_tooltip_text( buttonlist[orderLeft[i]][0] );
                 button.connect('button-press-event', Lang.bind(this, buttonlist[orderLeft[i]][1]));
                 this.leftBox.add(button);
             }
