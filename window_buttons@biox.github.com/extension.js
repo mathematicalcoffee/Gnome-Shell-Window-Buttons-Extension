@@ -113,7 +113,7 @@ __proto__: PanelMenu.ButtonBox.prototype,
         //~ if (currentTheme) {
             //~ let customStylesheets = currentTheme.get_custom_stylesheets();
             //~ for (let i = 0; i < customStylesheets.length; i++) {
-                //~ if (customStylesheets[i] != extensionPath + '/themes/' + oldtheme + '/style.css') {
+                //~ if (customStylesheets[i] !== extensionPath + '/themes/' + oldtheme + '/style.css') {
                     //~ newTheme.load_stylesheet(customStylesheets[i]);
                 //~ }
             //~ }
@@ -123,11 +123,11 @@ __proto__: PanelMenu.ButtonBox.prototype,
 
         // Naughty bit to make "default" theme look better
             //~ for (i in this.leftBox.get_children()) {
-                //~ if (theme == "default") {this.leftBox.get_children()[i].add_style_class_name("panel-button"); } 
+                //~ if (theme === "default") {this.leftBox.get_children()[i].add_style_class_name("panel-button"); } 
                 //~ else { this.leftBox.get_children()[i].remove_style_class_name("panel-button"); }
             //~ }
             //~ for (i in this.rightBox.get_children()) {
-                //~ if (theme == "default") {this.rightBox.get_children()[i].add_style_class_name("panel-button"); } 
+                //~ if (theme === "default") {this.rightBox.get_children()[i].add_style_class_name("panel-button"); } 
                 //~ else { this.rightBox.get_children()[i].remove_style_class_name("panel-button"); }
             //~ }
     },
@@ -144,11 +144,11 @@ __proto__: PanelMenu.ButtonBox.prototype,
 
         pinch = this._settings.get_enum(WA_PINCH);
 
-        if (pinch == 0) {
+        if (pinch === PinchType.CUSTOM) {
             order = this._settings.get_string(WA_ORDER);
-        } else if (pinch == 1) {
+        } else if (pinch === PinchType.MUTTER) {
             order = GConf.Client.get_default().get_string("/desktop/gnome/shell/windows/button_layout");
-        } else if (pinch == 2) {
+        } else if (pinch === PinchType.METACITY) {
             order = GConf.Client.get_default().get_string("/apps/metacity/general/button_layout");
         }
 
@@ -160,7 +160,7 @@ __proto__: PanelMenu.ButtonBox.prototype,
         let orderLeft  = orders[0].split(',')
         let orderRight = orders[1].split(',')
 
-        if (orderRight != "") {
+        if (orderRight !== "") {
             for ( let i=0; i<orderRight.length; ++i ) {
                 let button = new St.Button({ style_class: orderRight[i]  + ' window-button' , track_hover: true } ); 
                 //button.set_tooltip_text( buttonlist[orderRight[i]][0] );
@@ -169,7 +169,7 @@ __proto__: PanelMenu.ButtonBox.prototype,
             }
         }
 
-        if (orderLeft != "") {
+        if (orderLeft !== "") {
             for ( let i=0; i<orderLeft.length; ++i ) {
                 let button = new St.Button({ style_class: orderLeft[i] + ' window-button' } ); 
                 //button.set_tooltip_text( buttonlist[orderLeft[i]][0] );
@@ -212,7 +212,7 @@ __proto__: PanelMenu.ButtonBox.prototype,
     _minimize: function() {
         let activeWindow = global.display.focus_window
         onlymax = this._settings.get_boolean(WA_ONLYMAX);
-        if (activeWindow == null || activeWindow.get_title() == "Desktop") {
+        if (activeWindow === null || activeWindow.get_title() === "Desktop") {
             // No windows are active, minimize the uppermost window
             let winactors = global.get_window_actors()
             let uppermost = winactors[winactors.length-1].get_meta_window()
@@ -243,7 +243,7 @@ __proto__: PanelMenu.ButtonBox.prototype,
         let activeWindow = global.display.focus_window
         onlymax = this._settings.get_boolean(WA_ONLYMAX);
         // window.maximize() did not exist when I started writing this extension!!?!
-        if (activeWindow == null || activeWindow.get_title() == "Desktop") {
+        if (activeWindow === null || activeWindow.get_title() === "Desktop") {
             // No windows are active, maximize the uppermost window
             let winactors = global.get_window_actors()
             let uppermost = winactors[winactors.length-1].get_meta_window()
@@ -274,7 +274,7 @@ __proto__: PanelMenu.ButtonBox.prototype,
     _close: function() {
         let activeWindow = global.display.focus_window
         onlymax = this._settings.get_boolean(WA_ONLYMAX);
-        if (activeWindow == null || activeWindow.get_title() == "Desktop") {
+        if (activeWindow === null || activeWindow.get_title() === "Desktop") {
             // No windows are active, close the uppermost window
             let winactors = global.get_window_actors()
             let uppermost = winactors[winactors.length-1].get_meta_window()
