@@ -24,7 +24,8 @@
 const PinchType = {
     CUSTOM: 0,
     MUTTER: 1,
-    METACITY: 2
+    METACITY: 2,
+    GNOME_SHELL: 3
 };
 
 // The order of the window buttons (e.g. :minimize,maximize,close). Colon represents the shit in the middle.
@@ -62,10 +63,16 @@ const St = imports.gi.St;
 const Main = imports.ui.main;
 const Gio = imports.gi.Gio;
 const GConf = imports.gi.GConf;
+const Meta = imports.gi.Meta;
 const PanelMenu = imports.ui.panelMenu;
 const Shell = imports.gi.Shell;
 
 let extensionPath = "";
+
+// Laziness
+Meta.MaximizeFlags.BOTH = Meta.MaximizeFlags.HORIZONTAL | Meta.MaximizeFlags.VERTICAL;
+
+const _ORDER_DEFAULT = order;
 
 function WindowButtons() {
     this._init();
@@ -74,7 +81,7 @@ function WindowButtons() {
 WindowButtons.prototype = {
 __proto__: PanelMenu.ButtonBox.prototype,
 
-    _init: function() {
+    _init: function () {
 
         //Load Settings
         //this._settings = new Gio.Settings({ schema: WA_SETTINGS_SCHEMA });
@@ -96,11 +103,11 @@ __proto__: PanelMenu.ButtonBox.prototype,
 
         //Connect to setting change events
         /*
-        this._settings.connect('changed::'+WA_DOGTK, Lang.bind(this, this._loadTheme));
-        this._settings.connect('changed::'+WA_THEME, Lang.bind(this, this._loadTheme));
-        this._settings.connect('changed::'+WA_ORDER, Lang.bind(this, this._display));
-        this._settings.connect('changed::'+WA_PINCH, Lang.bind(this, this._display));
-        this._settings.connect('changed::'+WA_HIDEONNOMAX, Lang.bind(this, this._windowChanged));
+        this._settings.connect('changed::' + WA_DOGTK, Lang.bind(this, this._loadTheme));
+        this._settings.connect('changed::' + WA_THEME, Lang.bind(this, this._loadTheme));
+        this._settings.connect('changed::' + WA_ORDER, Lang.bind(this, this._display));
+        this._settings.connect('changed::' + WA_PINCH, Lang.bind(this, this._display));
+        this._settings.connect('changed::' + WA_HIDEONNOMAX, Lang.bind(this, this._windowChanged));
         */
 
         //Connect to window change events
@@ -116,7 +123,7 @@ __proto__: PanelMenu.ButtonBox.prototype,
         this._windowChanged();
     },
 
-    _loadTheme: function() {
+    _loadTheme: function () {
 
         let oldtheme = theme;
 
@@ -124,7 +131,7 @@ __proto__: PanelMenu.ButtonBox.prototype,
 
         if (dogtk) {
             // Get GTK theme name
-            //theme = new imports.gi.Gio.Settings({schema: "org.gnome.desktop.interface"}).get_string("gtk-theme")
+            //theme = new imports.gi.Gio.Settings({schema: "org.gnome.desktop.interface"}).get_string("gtk-theme");
             // Get Mutter / Metacity theme name
             theme = GConf.Client.get_default().get_string("/apps/metacity/general/theme");
         }/* else {
@@ -134,7 +141,9 @@ __proto__: PanelMenu.ButtonBox.prototype,
         // Get CSS of new theme, and check it exists, falling back to 'default'
         let cssPath = extensionPath + '/themes/' + theme + '/style.css';
         let cssFile = Gio.file_new_for_path(cssPath);
-        if (!cssFile.query_exists(null)) { cssPath = extensionPath + '/themes/default/style.css' }
+        if (!cssFile.query_exists(null)) {
+            cssPath = extensionPath + '/themes/default/style.css';
+        }
 
         // Old method, requires restart really
         St.ThemeContext.get_for_stage(global.stage).get_theme().load_stylesheet(cssPath);
@@ -146,7 +155,7 @@ __proto__: PanelMenu.ButtonBox.prototype,
         //~ if (currentTheme) {
             //~ let customStylesheets = currentTheme.get_custom_stylesheets();
             //~ for (let i = 0; i < customStylesheets.length; i++) {
-                //~ if (customStylesheets[i] != extensionPath + '/themes/' + oldtheme + '/style.css') {
+                //~ if (customStylesheets[i] !== extensionPath + '/themes/' + oldtheme + '/style.css') {
                     //~ newTheme.load_stylesheet(customStylesheets[i]);
                 //~ }
             //~ }
@@ -156,57 +165,60 @@ __proto__: PanelMenu.ButtonBox.prototype,
 
         // Naughty bit to make "default" theme look better
             //~ for (i in this.leftBox.get_children()) {
-                //~ if (theme == "default") {this.leftBox.get_children()[i].add_style_class_name("panel-button"); } 
+                //~ if (theme === "default") {this.leftBox.get_children()[i].add_style_class_name("panel-button"); }
                 //~ else { this.leftBox.get_children()[i].remove_style_class_name("panel-button"); }
             //~ }
             //~ for (i in this.rightBox.get_children()) {
-                //~ if (theme == "default") {this.rightBox.get_children()[i].add_style_class_name("panel-button"); } 
+                //~ if (theme === "default") {this.rightBox.get_children()[i].add_style_class_name("panel-button"); }
                 //~ else { this.rightBox.get_children()[i].remove_style_class_name("panel-button"); }
             //~ }
     },
 
-    _display: function() {
+    _display: function () {
 
         let boxes = [ this.leftBox, this.rightBox ];
-        for (box in boxes) {
-            let children = boxes[box].get_children()
-            for ( let i=0; i<children.length; ++i ) {
-                    children[i].destroy();
+        for (let box = 0; box < boxes.length; ++box) {
+            let children = boxes[box].get_children();
+            for (let i = 0; i < children.length; ++i) {
+                children[i].destroy();
             }
         }
 
         //pinch = this._settings.get_enum(WA_PINCH);
 
-        if (pinch == 0) {
-            // use 'order' variable.
-            //order = this._settings.get_string(WA_ORDER);
-        } else if (pinch == 1) {
+        if (pinch === PinchType.MUTTER) {
             order = GConf.Client.get_default().get_string("/desktop/gnome/shell/windows/button_layout");
-        } else if (pinch == 2) {
+        } else if (pinch === PinchType.METACITY) {
             order = GConf.Client.get_default().get_string("/apps/metacity/general/button_layout");
+        } else if (pinch === PinchType.GNOME_SHELL) {
+            order = new Gio.Settings({ schema: 'org.gnome.shell.overrides' }).get_string('button-layout');
+        }
+        // otherwise, we end up with 'order' specified up the top
+        /* If still no joy, use a default of :minimize,maximize,close ... */
+        if (!order || !order.length) {
+            order = _ORDER_DEFAULT;
         }
 
-        let buttonlist = {  minimize : ['Minimize', this._minimize], 
-                            maximize : ['Maximize', this._maximize], 
-                            close    : ['Close', this._close] } ;
-
-        let orders = order.split(':')
-        let orderLeft  = orders[0].split(',')
-        let orderRight = orders[1].split(',')
+        let buttonlist = {  minimize : ['Minimize', this._minimize],
+                            maximize : ['Maximize', this._maximize],
+                            close    : ['Close', this._close] },
+            orders     = order.replace(/ /g, '').split(':'),
+            orderLeft  = orders[0].split(','),
+            orderRight = orders[1].split(',');
 
         if (orderRight != "") {
-            for ( let i=0; i<orderRight.length; ++i ) {
-                let button = new St.Button({ style_class: orderRight[i]  + ' window-button' , track_hover: true } ); 
-                //button.set_tooltip_text( buttonlist[orderRight[i]][0] );
+            for (let i = 0; i < orderRight.length; ++i) {
+                let button = new St.Button({ style_class: orderRight[i]  + ' window-button', track_hover: true });
+                //button.set_tooltip_text(buttonlist[orderRight[i]][0]);
                 button.connect('button-press-event', Lang.bind(this, buttonlist[orderRight[i]][1]));
                 this.rightBox.add_actor(button);
             }
         }
 
         if (orderLeft != "") {
-            for ( let i=0; i<orderLeft.length; ++i ) {
-                let button = new St.Button({ style_class: orderLeft[i] + ' window-button' } ); 
-                //button.set_tooltip_text( buttonlist[orderLeft[i]][0] );
+            for (let i = 0; i < orderLeft.length; ++i) {
+                let button = new St.Button({ style_class: orderLeft[i] + ' window-button' });
+                //button.set_tooltip_text(buttonlist[orderLeft[i]][0]);
                 button.connect('button-press-event', Lang.bind(this, buttonlist[orderLeft[i]][1]));
                 this.leftBox.add(button);
             }
@@ -218,48 +230,48 @@ __proto__: PanelMenu.ButtonBox.prototype,
     _windowChanged: function() {
         //hideonnomax = this._settings.get_boolean(WA_HIDEONNOMAX);
         if (onlymax && hideonnomax) {
-            let activeWindow = global.display.focus_window
+            let activeWindow = global.display.focus_window;
             if (this._upperMax()) {
-                this.leftActor.show()
-                this.rightActor.show()
+                this.leftActor.show();
+                this.rightActor.show();
             } else {
-                this.leftActor.hide()
-                this.rightActor.hide()
+                this.leftActor.hide();
+                this.rightActor.hide();
             }
         }
     },
 
     // Return the uppermost maximized window from the current workspace, or fasle is there is none
-    _upperMax: function() {
+    _upperMax: function () {
         let workspace = global.screen.get_active_workspace();
         let windows = workspace.list_windows();
         let maxwin = false;
-        for ( let i=windows.length-1; i>=0; --i ) {
+        for (let i = windows.length - 1; i >= 0; --i) {
             if (windows[i].get_maximized() && !windows[i].minimized) {
-                maxwin = windows[i]
+                maxwin = windows[i];
                 break;
             }
         }
         return maxwin;
     },
 
-    _minimize: function() {
-        let activeWindow = global.display.focus_window
+    _minimize: function () {
+        let activeWindow = global.display.focus_window;
         //onlymax = this._settings.get_boolean(WA_ONLYMAX);
-        if (activeWindow == null || activeWindow.get_title() == "Desktop") {
+        if (activeWindow === null || activeWindow.get_title() === "Desktop") {
             // No windows are active, minimize the uppermost window
-            let winactors = global.get_window_actors()
-            let uppermost = winactors[winactors.length-1].get_meta_window()
-            uppermost.minimize()
+            let winactors = global.get_window_actors();
+            let uppermost = winactors[winactors.length - 1].get_meta_window();
+            uppermost.minimize();
         } else {
             // If the active window is maximized, minimize it
-            if (activeWindow.get_maximized()){
+            if (activeWindow.get_maximized()) {
                 activeWindow.minimize();
-            // If the active window is not maximized, minimize the uppermost 
+            // If the active window is not maximized, minimize the uppermost
             // maximized window if the option to only control maximized windows is set
             } else if (onlymax) {
-                let uppermax = this._upperMax()
-                if ( uppermax ) {
+                let uppermax = this._upperMax();
+                if (uppermax) {
                     uppermax.minimize();
                     activeWindow.activate(global.get_current_time());
                 } else {
@@ -274,54 +286,54 @@ __proto__: PanelMenu.ButtonBox.prototype,
     },
 
     _maximize: function() {
-        let activeWindow = global.display.focus_window
+        let activeWindow = global.display.focus_window;
         //onlymax = this._settings.get_boolean(WA_ONLYMAX);
         // window.maximize() did not exist when I started writing this extension!!?!
-        if (activeWindow == null || activeWindow.get_title() == "Desktop") {
+        if (activeWindow === null || activeWindow.get_title() === "Desktop") {
             // No windows are active, maximize the uppermost window
-            let winactors = global.get_window_actors()
-            let uppermost = winactors[winactors.length-1].get_meta_window()
-            uppermost.maximize(3)
+            let winactors = global.get_window_actors();
+            let uppermost = winactors[winactors.length - 1].get_meta_window();
+            uppermost.maximize(Meta.MaximizeFlags.BOTH);
             // May as well activate it too...
-            uppermost.activate(global.get_current_time())
+            uppermost.activate(global.get_current_time());
         } else {
             // If the active window is maximized, unmaximize it
-            if (activeWindow.get_maximized()){
-                activeWindow.unmaximize(3);
-            // If the active window is not maximized, unmaximize the uppermost 
+            if (activeWindow.get_maximized()) {
+                activeWindow.unmaximize(Meta.MaximizeFlags.BOTH);
+            // If the active window is not maximized, unmaximize the uppermost
             // maximized window if the option to only control maximized windows is set
             } else if (onlymax) {
-                let uppermax = this._upperMax()
-                if ( uppermax ) {
-                    uppermax.unmaximize(3);
+                let uppermax = this._upperMax();
+                if (uppermax) {
+                    uppermax.unmaximize(Meta.MaximizeFlags.BOTH);
                     activeWindow.activate(global.get_current_time());
                 } else {
-                    activeWindow.maximize(3);
+                    activeWindow.maximize(Meta.MaximizeFlags.BOTH);
                 }
             // Otherwise unmaximize the active window
             } else {
-                activeWindow.maximize(3);
+                activeWindow.maximize(Meta.MaximizeFlags.BOTH);
             }
         }
     },
 
-    _close: function() {
-        let activeWindow = global.display.focus_window
+    _close: function () {
+        let activeWindow = global.display.focus_window;
         //onlymax = this._settings.get_boolean(WA_ONLYMAX);
-        if (activeWindow == null || activeWindow.get_title() == "Desktop") {
+        if (activeWindow === null || activeWindow.get_title() === "Desktop") {
             // No windows are active, close the uppermost window
-            let winactors = global.get_window_actors()
-            let uppermost = winactors[winactors.length-1].get_meta_window()
-            uppermost.delete(global.get_current_time())
+            let winactors = global.get_window_actors();
+            let uppermost = winactors[winactors.length - 1].get_meta_window();
+            uppermost.delete(global.get_current_time());
         } else {
             // If the active window is maximized, close it
-            if (activeWindow.get_maximized()){
+            if (activeWindow.get_maximized()) {
                 activeWindow.delete(global.get_current_time());
-            // If the active window is not maximized, close the uppermost 
+            // If the active window is not maximized, close the uppermost
             // maximized window if the option to only control maximized windows is set
             } else if (onlymax) {
-                let uppermax = this._upperMax()
-                if ( uppermax ) {
+                let uppermax = this._upperMax();
+                if (uppermax) {
                     uppermax.delete(global.get_current_time());
                     activeWindow.activate(global.get_current_time());
                 } else {
@@ -336,13 +348,13 @@ __proto__: PanelMenu.ButtonBox.prototype,
     },
 
 
-    enable: function() {
+    enable: function () {
         let children = Main.panel._rightBox.get_children();
         Main.panel._rightBox.add_actor(this.rightActor, children.length);
         Main.panel._leftBox.add_actor(this.leftActor, 0);
     },
 
-    disable: function() {
+    disable: function () {
         Main.panel._rightBox.remove_actor(this.leftActor);
         Main.panel._rightBox.remove_actor(this.rightActor);
     }
