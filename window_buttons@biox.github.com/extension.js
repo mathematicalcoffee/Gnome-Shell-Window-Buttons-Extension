@@ -173,7 +173,7 @@ __proto__: PanelMenu.ButtonBox.prototype,
             orderLeft  = orders[0].split(','),
             orderRight = orders[1].split(',');
 
-        if (orderRight !== "") {
+        if (orderRight != "") {
             for (let i = 0; i < orderRight.length; ++i) {
                 let button = new St.Button({ style_class: orderRight[i]  + ' window-button', track_hover: true });
                 //button.set_tooltip_text(buttonlist[orderRight[i]][0]);
@@ -182,7 +182,7 @@ __proto__: PanelMenu.ButtonBox.prototype,
             }
         }
 
-        if (orderLeft !== "") {
+        if (orderLeft != "") {
             for (let i = 0; i < orderLeft.length; ++i) {
                 let button = new St.Button({ style_class: orderLeft[i] + ' window-button' });
                 //button.set_tooltip_text(buttonlist[orderLeft[i]][0]);
