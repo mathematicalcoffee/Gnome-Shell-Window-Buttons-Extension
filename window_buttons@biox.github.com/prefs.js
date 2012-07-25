@@ -30,7 +30,8 @@ const WA_RIGHTPOS = 'rightpos';
 const PinchType = {
     CUSTOM: 0,
     MUTTER: 1,
-    METACITY: 2
+    METACITY: 2,
+    GNOME_SHELL: 3
 };
 
 function init() {
@@ -58,6 +59,7 @@ const WindowButtonsPrefsWidget = new GObject.Class({
         for (let type in PinchType) {
             if (PinchType.hasOwnProperty(type)) {
                 let label = type[0].toUpperCase() + type.substring(1).toLowerCase();
+                label = label.replace(/_/g, '-');
                 item.insert(-1, PinchType[type].toString(), label);
             }
         }
