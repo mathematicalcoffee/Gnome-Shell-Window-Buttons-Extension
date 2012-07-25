@@ -1,7 +1,8 @@
 {
-  "shell-version": ["3.4"], 
+  "shell-version": ["3.2"], 
   "uuid": "window_buttons@biox.github.com",
   "name": "Window Buttons",
   "description": "Add minimize, maximize and close buttons to the panel",
-  "url": "http://intgat.tigress.co.uk/rmy/extensions/index.html"
+  "url": "http://intgat.tigress.co.uk/rmy/extensions/index.html",
+  "version": 2
 }
