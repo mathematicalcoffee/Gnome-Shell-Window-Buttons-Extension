@@ -6,6 +6,7 @@ const St = imports.gi.St;
 const Main = imports.ui.main;
 const Gio = imports.gi.Gio;
 const GConf = imports.gi.GConf;
+const Meta = imports.gi.Meta;
 const PanelMenu = imports.ui.panelMenu;
 const Shell = imports.gi.Shell;
 
@@ -20,6 +21,8 @@ const WA_DOGTK = 'dogtk';
 const WA_ONLYMAX = 'onlymax';
 const WA_HIDEONNOMAX = 'hideonnomax';
 
+// Laziness
+Meta.MaximizeFlags.BOTH = Meta.MaximizeFlags.HORIZONTAL | Meta.MaximizeFlags.VERTICAL;
 
 // Keep enums in sync with GSettings schemas
 const PinchType = {
@@ -248,26 +251,26 @@ __proto__: PanelMenu.ButtonBox.prototype,
             // No windows are active, maximize the uppermost window
             let winactors = global.get_window_actors();
             let uppermost = winactors[winactors.length - 1].get_meta_window();
-            uppermost.maximize(3);
+            uppermost.maximize(Meta.MaximizeFlags.BOTH);
             // May as well activate it too...
             uppermost.activate(global.get_current_time());
         } else {
             // If the active window is maximized, unmaximize it
             if (activeWindow.get_maximized()) {
-                activeWindow.unmaximize(3);
+                activeWindow.unmaximize(Meta.MaximizeFlags.BOTH);
             // If the active window is not maximized, unmaximize the uppermost
             // maximized window if the option to only control maximized windows is set
             } else if (onlymax) {
                 let uppermax = this._upperMax();
                 if (uppermax) {
-                    uppermax.unmaximize(3);
+                    uppermax.unmaximize(Meta.MaximizeFlags.BOTH);
                     activeWindow.activate(global.get_current_time());
                 } else {
-                    activeWindow.maximize(3);
+                    activeWindow.maximize(Meta.MaximizeFlags.BOTH);
                 }
             // Otherwise unmaximize the active window
             } else {
-                activeWindow.maximize(3);
+                activeWindow.maximize(Meta.MaximizeFlags.BOTH);
             }
         }
     },
