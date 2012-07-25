@@ -1,6 +1,62 @@
-// Copyright (C) 2011 Josiah Messiah (josiah.messiah@gmail.com)
-// Licence: GPLv3
+/* Window Button GNOME shell extension.
+ * Copyright (C) 2011 Josiah Messiah (josiah.messiah@gmail.com)
+ * Licence: GPLv3
+ *
+ * Contributors:
+ * - Josiah Messiah <josiah.messiah@gmail.com>
+ * - barravi <https://github.com/barravi>
+ * - tiper <https://github.com/tiper>
+ * - mathematical.coffee <mathematical.coffee@gmail.com>
+ *
+ * Note: this version (for GNOME 3.2 distributed by extensions.gnome.org) does
+ * not use gsettings like the old github version did, because that had to be
+ * installed in /usr/share which requires root permissions.
+ *
+ * Instead, change settings by editting extension.js (In GNOME 3.4 you can
+ * use gnome-shell-extension-prefs and gsettings instead of this).
+ * 
+ * TODO: use global schema if present?
+ */
 
+/*** GNOME 3.2: CONFIGURE THE EXTENSION HERE ***/
+
+// [leave this alone] Keep enums in sync with GSettings schemas
+const PinchType = {
+    CUSTOM: 0,
+    MUTTER: 1,
+    METACITY: 2
+};
+
+// The order of the window buttons (e.g. :minimize,maximize,close). Colon represents the shit in the middle.
+// If you wish to use this order (rather than the Mutter/Metacity one), you must set
+// the 'pinch' variable below to PinchType.CUSTOM.
+const order = ':minimize,maximize,close';
+
+// The name of the theme to use
+const theme = 'default';
+
+// Use custom button order or the order pinch settings from mutter/metacity.
+// Options: PinchType.MUTTER    (use /desktop/gnome/shell/windows/button_layout)
+//          PinchType.METACITY  (use /apps/metacity/general/button_layout)
+//          PinchType.CUSTOM    (use the 'order' variable above)
+const pinch = PinchType.MUTTER;
+
+// Try to use the theme with the same name as the current gtk theme
+const dogtk = true;
+
+// How far left should the left-hand buttons be placed. 0 = furthest left.
+const leftpos = 0;
+
+// How far right should the right-hand buttons be placed. 0 = furthest right.
+const rightpos = 0;
+
+// Prioritise controlling windows which are maximized.
+const onlymax = false;
+
+// Hide the window buttons if there are no maximized windows to control. Only works if controling only maximized windows. Only has any effect is the 'onlymax' option is set.
+const hideonnomax = false;
+
+/*********** CODE. LEAVE THE FOLLOWING **************/
 const Lang = imports.lang;
 const St = imports.gi.St;
 const Main = imports.ui.main;
@@ -10,31 +66,6 @@ const PanelMenu = imports.ui.panelMenu;
 const Shell = imports.gi.Shell;
 
 let extensionPath = "";
-
-// Settings
-const WA_SETTINGS_SCHEMA = 'org.gnome.shell.extensions.window-buttons';
-const WA_PINCH = 'pinch';
-const WA_ORDER = 'order';
-const WA_THEME = 'theme';
-const WA_DOGTK = 'dogtk';
-const WA_ONLYMAX = 'onlymax';
-const WA_HIDEONNOMAX = 'hideonnomax';
-
-
-// Keep enums in sync with GSettings schemas
-const PinchType = {
-    CUSTOM: 0,
-    MUTTER: 1,
-    METACITY: 2
-};
-
-
-let pinch = 1;
-let order = ":minimize,maximize,close";
-let dogtk = false;
-let theme = "default";
-let onlymax = false;
-let hideonnomax = false;
 
 function WindowButtons() {
     this._init();
@@ -46,7 +77,7 @@ __proto__: PanelMenu.ButtonBox.prototype,
     _init: function() {
 
         //Load Settings
-        this._settings = new Gio.Settings({ schema: WA_SETTINGS_SCHEMA });
+        //this._settings = new Gio.Settings({ schema: WA_SETTINGS_SCHEMA });
 
         //Create boxes for the buttons
         this.rightActor = new St.Bin({ style_class: 'box-bin'});
@@ -64,11 +95,13 @@ __proto__: PanelMenu.ButtonBox.prototype,
         this._loadTheme();
 
         //Connect to setting change events
+        /*
         this._settings.connect('changed::'+WA_DOGTK, Lang.bind(this, this._loadTheme));
         this._settings.connect('changed::'+WA_THEME, Lang.bind(this, this._loadTheme));
         this._settings.connect('changed::'+WA_ORDER, Lang.bind(this, this._display));
         this._settings.connect('changed::'+WA_PINCH, Lang.bind(this, this._display));
         this._settings.connect('changed::'+WA_HIDEONNOMAX, Lang.bind(this, this._windowChanged));
+        */
 
         //Connect to window change events
         Shell.WindowTracker.get_default().connect('notify::focus-app', Lang.bind(this, this._windowChanged));
@@ -87,16 +120,16 @@ __proto__: PanelMenu.ButtonBox.prototype,
 
         let oldtheme = theme;
 
-        dogtk = this._settings.get_boolean(WA_DOGTK);
+        //dogtk = this._settings.get_boolean(WA_DOGTK);
 
         if (dogtk) {
             // Get GTK theme name
             //theme = new imports.gi.Gio.Settings({schema: "org.gnome.desktop.interface"}).get_string("gtk-theme")
             // Get Mutter / Metacity theme name
             theme = GConf.Client.get_default().get_string("/apps/metacity/general/theme");
-        } else {
+        }/* else {
             theme = this._settings.get_string(WA_THEME);
-        }
+        }*/
 
         // Get CSS of new theme, and check it exists, falling back to 'default'
         let cssPath = extensionPath + '/themes/' + theme + '/style.css';
@@ -142,10 +175,11 @@ __proto__: PanelMenu.ButtonBox.prototype,
             }
         }
 
-        pinch = this._settings.get_enum(WA_PINCH);
+        //pinch = this._settings.get_enum(WA_PINCH);
 
         if (pinch == 0) {
-            order = this._settings.get_string(WA_ORDER);
+            // use 'order' variable.
+            //order = this._settings.get_string(WA_ORDER);
         } else if (pinch == 1) {
             order = GConf.Client.get_default().get_string("/desktop/gnome/shell/windows/button_layout");
         } else if (pinch == 2) {
@@ -182,7 +216,7 @@ __proto__: PanelMenu.ButtonBox.prototype,
 
 
     _windowChanged: function() {
-        hideonnomax = this._settings.get_boolean(WA_HIDEONNOMAX);
+        //hideonnomax = this._settings.get_boolean(WA_HIDEONNOMAX);
         if (onlymax && hideonnomax) {
             let activeWindow = global.display.focus_window
             if (this._upperMax()) {
@@ -211,7 +245,7 @@ __proto__: PanelMenu.ButtonBox.prototype,
 
     _minimize: function() {
         let activeWindow = global.display.focus_window
-        onlymax = this._settings.get_boolean(WA_ONLYMAX);
+        //onlymax = this._settings.get_boolean(WA_ONLYMAX);
         if (activeWindow == null || activeWindow.get_title() == "Desktop") {
             // No windows are active, minimize the uppermost window
             let winactors = global.get_window_actors()
@@ -241,7 +275,7 @@ __proto__: PanelMenu.ButtonBox.prototype,
 
     _maximize: function() {
         let activeWindow = global.display.focus_window
-        onlymax = this._settings.get_boolean(WA_ONLYMAX);
+        //onlymax = this._settings.get_boolean(WA_ONLYMAX);
         // window.maximize() did not exist when I started writing this extension!!?!
         if (activeWindow == null || activeWindow.get_title() == "Desktop") {
             // No windows are active, maximize the uppermost window
@@ -273,7 +307,7 @@ __proto__: PanelMenu.ButtonBox.prototype,
 
     _close: function() {
         let activeWindow = global.display.focus_window
-        onlymax = this._settings.get_boolean(WA_ONLYMAX);
+        //onlymax = this._settings.get_boolean(WA_ONLYMAX);
         if (activeWindow == null || activeWindow.get_title() == "Desktop") {
             // No windows are active, close the uppermost window
             let winactors = global.get_window_actors()
