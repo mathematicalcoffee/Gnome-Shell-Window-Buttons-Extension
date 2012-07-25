@@ -28,12 +28,13 @@ Meta.MaximizeFlags.BOTH = Meta.MaximizeFlags.HORIZONTAL | Meta.MaximizeFlags.VER
 const PinchType = {
     CUSTOM: 0,
     MUTTER: 1,
-    METACITY: 2
+    METACITY: 2,
+    GNOMESHELL: 3
 };
 
 
 let pinch = 1;
-let order = ":minimize,maximize,close";
+let order = _ORDER_DEFAULT = ":minimize,maximize,close";
 let dogtk = false;
 let theme = "default";
 let onlymax = false;
@@ -149,12 +150,20 @@ __proto__: PanelMenu.ButtonBox.prototype,
 
         pinch = this._settings.get_enum(WA_PINCH);
 
-        if (pinch === PinchType.CUSTOM) {
-            order = this._settings.get_string(WA_ORDER);
-        } else if (pinch === PinchType.MUTTER) {
+        if (pinch === PinchType.MUTTER) {
             order = GConf.Client.get_default().get_string("/desktop/gnome/shell/windows/button_layout");
         } else if (pinch === PinchType.METACITY) {
             order = GConf.Client.get_default().get_string("/apps/metacity/general/button_layout");
+        } else if (pinch === PinchType.GNOMESHELL) {
+            order = new Gio.Settings({ schema: 'org.gnome.shell.overrides' }).get_string('button-layout');
+        }
+        /* if order is null because keys don't exist, get them from settings (PinchType.CUSTOM) */
+        if (pinch === PinchType.CUSTOM || !order || !order.length) {
+            order = this._settings.get_string(WA_ORDER);
+        }
+        /* If still no joy, use a default of :minmize,maximizeclose ... */
+        if (!order || !order.length) {
+            order = _ORDER_DEFAULT;
         }
 
         let buttonlist = {  minimize : ['Minimize', this._minimize],
