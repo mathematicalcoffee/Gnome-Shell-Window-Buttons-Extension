@@ -14,9 +14,11 @@ all: clean
 		glib-compile-schemas $(UUID)/schemas; \
 	fi
 
+# to put on the Downloads page
 zip: all
 	zip -rq $(UUID).zip $(FILES:%=$(UUID)/%)
 
+# to upload to e.g.o
 dev-zip: all
 	(cd $(UUID); \
 		zip -rq ../$(UUID).zip $(FILES))
