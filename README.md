@@ -38,3 +38,11 @@ To-do
 - Add option to handle only maximized windows
 - Add option to hide if there are no maximized windows
 - Moar themes!
+
+Version map
+-----------
+For 'version', see 'version' in metadata.json (this is the version of the extension as it appears/is planned for on extensions.gnome.org).
+
+- v1: GNOME 3.4-compatible.
+- v2: GNOME 3.2-compatible.
+- 
