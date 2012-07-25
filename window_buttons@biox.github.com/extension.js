@@ -6,28 +6,31 @@ const St = imports.gi.St;
 const Main = imports.ui.main;
 const Gio = imports.gi.Gio;
 const GConf = imports.gi.GConf;
+const Meta = imports.gi.Meta;
 const PanelMenu = imports.ui.panelMenu;
 const Shell = imports.gi.Shell;
 
+const ExtensionUtils = imports.misc.extensionUtils;
+const Me = ExtensionUtils.getCurrentExtension();
+const Convenience = Me.imports.convenience;
+const Prefs = Me.imports.prefs;
 let extensionPath = "";
 
 // Settings
-const WA_SETTINGS_SCHEMA = 'org.gnome.shell.extensions.window-buttons';
-const WA_PINCH = 'pinch';
-const WA_ORDER = 'order';
-const WA_THEME = 'theme';
-const WA_DOGTK = 'dogtk';
-const WA_ONLYMAX = 'onlymax';
-const WA_HIDEONNOMAX = 'hideonnomax';
-
+const WA_PINCH = Prefs.WA_PINCH;
+const WA_ORDER = Prefs.WA_ORDER;
+const WA_THEME = Prefs.WA_THEME;
+const WA_DOGTK = Prefs.WA_DOGTK;
+const WA_ONLYMAX = Prefs.WA_ONLYMAX;
+const WA_HIDEONNOMAX = Prefs.WA_HIDEONNOMAX;
+const WA_LEFTPOS = Prefs.WA_LEFTPOS;
+const WA_RIGHTPOS = Prefs.WA_RIGHTPOS;
 
 // Keep enums in sync with GSettings schemas
-const PinchType = {
-    CUSTOM: 0,
-    MUTTER: 1,
-    METACITY: 2
-};
+const PinchType = Prefs.PinchType;
 
+// Laziness
+Meta.MaximizeFlags.BOTH = Meta.MaximizeFlags.HORIZONTAL | Meta.MaximizeFlags.VERTICAL;
 
 let pinch = 1;
 let order = ":minimize,maximize,close";
@@ -46,7 +49,7 @@ __proto__: PanelMenu.ButtonBox.prototype,
     _init: function() {
 
         //Load Settings
-        this._settings = new Gio.Settings({ schema: WA_SETTINGS_SCHEMA });
+        this._settings = Convenience.getSettings();
 
         //Create boxes for the buttons
         this.rightActor = new St.Bin({ style_class: 'box-bin'});
@@ -151,6 +154,16 @@ __proto__: PanelMenu.ButtonBox.prototype,
         } else if (pinch == 2) {
             order = GConf.Client.get_default().get_string("/apps/metacity/general/button_layout");
         }
+        /* if order is null because keys don't exist, get them from here or just use
+         * ._settings.get_string
+         */
+        if (!order || !order.length) {
+            order = new Gio.Settings({ schema: 'org.gnome.shell.overrides' }).get_string('button-layout');
+        }
+        /* If still no joy, use a default of :minmize,maximizeclose ... */
+        if (!order || !order.length) {
+            order = ":minimize,maximize,close";
+        }
 
         let buttonlist = {  minimize : ['Minimize', this._minimize], 
                             maximize : ['Maximize', this._maximize], 
@@ -247,26 +260,26 @@ __proto__: PanelMenu.ButtonBox.prototype,
             // No windows are active, maximize the uppermost window
             let winactors = global.get_window_actors()
             let uppermost = winactors[winactors.length-1].get_meta_window()
-            uppermost.maximize(3)
+            uppermost.maximize(Meta.MaximizeFlags.BOTH);
             // May as well activate it too...
             uppermost.activate(global.get_current_time())
         } else {
             // If the active window is maximized, unmaximize it
             if (activeWindow.get_maximized()){
-                activeWindow.unmaximize(3);
+                activeWindow.unmaximize(Meta.MaximizeFlags.BOTH);
             // If the active window is not maximized, unmaximize the uppermost 
             // maximized window if the option to only control maximized windows is set
             } else if (onlymax) {
                 let uppermax = this._upperMax()
                 if ( uppermax ) {
-                    uppermax.unmaximize(3);
+                    uppermax.unmaximize(Meta.MaximizeFlags.BOTH);
                     activeWindow.activate(global.get_current_time());
                 } else {
-                    activeWindow.maximize(3);
+                    activeWindow.maximize(Meta.MaximizeFlags.BOTH);
                 }
             // Otherwise unmaximize the active window
             } else {
-                activeWindow.maximize(3);
+                activeWindow.maximize(Meta.MaximizeFlags.BOTH);
             }
         }
     },
@@ -304,8 +317,8 @@ __proto__: PanelMenu.ButtonBox.prototype,
 
     enable: function() {
         let children = Main.panel._rightBox.get_children();
-        Main.panel._rightBox.add_actor(this.rightActor, children.length);
-        Main.panel._leftBox.add_actor(this.leftActor, 0);
+        Main.panel._rightBox.insert_child_at_index(this.rightActor, children.length);
+        Main.panel._leftBox.insert_child_at_index(this.leftActor, 0);
     },
 
     disable: function() {
