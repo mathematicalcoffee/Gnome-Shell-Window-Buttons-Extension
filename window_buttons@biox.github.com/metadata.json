@@ -3,5 +3,7 @@
   "uuid": "window_buttons@biox.github.com",
   "name": "Window Buttons",
   "description": "Add minimize, maximize and close buttons to the panel",
-  "url": "http://intgat.tigress.co.uk/rmy/extensions/index.html"
+  "url": "http://intgat.tigress.co.uk/rmy/extensions/index.html",
+  "settings-schema": "org.gnome.shell.extensions.window-buttons",
+  "version": 1
 }

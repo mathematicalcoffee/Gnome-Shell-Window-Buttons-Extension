@@ -5,6 +5,7 @@
     <value value='0' nick='Custom'/>
     <value value='1' nick='Mutter'/>
     <value value='2' nick='Metacity'/>
+    <value value='3' nick='GNOME-shell'/>
   </enum>
 
   <schema path="/org/gnome/shell/extensions/window-buttons/" id="org.gnome.shell.extensions.window-buttons">

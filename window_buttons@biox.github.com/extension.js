@@ -10,31 +10,34 @@ const Meta = imports.gi.Meta;
 const PanelMenu = imports.ui.panelMenu;
 const Shell = imports.gi.Shell;
 
+const ExtensionUtils = imports.misc.extensionUtils;
+const Me = ExtensionUtils.getCurrentExtension();
+const Convenience = Me.imports.convenience;
+const Prefs = Me.imports.prefs;
 let extensionPath = "";
 
 // Settings
-const WA_SETTINGS_SCHEMA = 'org.gnome.shell.extensions.window-buttons';
-const WA_PINCH = 'pinch';
-const WA_ORDER = 'order';
-const WA_THEME = 'theme';
-const WA_DOGTK = 'dogtk';
-const WA_ONLYMAX = 'onlymax';
-const WA_HIDEONNOMAX = 'hideonnomax';
+const WA_PINCH = Prefs.WA_PINCH;
+const WA_ORDER = Prefs.WA_ORDER;
+const WA_THEME = Prefs.WA_THEME;
+const WA_DOGTK = Prefs.WA_DOGTK;
+const WA_ONLYMAX = Prefs.WA_ONLYMAX;
+const WA_HIDEONNOMAX = Prefs.WA_HIDEONNOMAX;
+const WA_LEFTPOS = Prefs.WA_LEFTPOS;
+const WA_RIGHTPOS = Prefs.WA_RIGHTPOS;
+
+// Keep enums in sync with GSettings schemas
+const PinchType = Prefs.PinchType;
 
 // Laziness
 Meta.MaximizeFlags.BOTH = Meta.MaximizeFlags.HORIZONTAL | Meta.MaximizeFlags.VERTICAL;
 
-// Keep enums in sync with GSettings schemas
-const PinchType = {
-    CUSTOM: 0,
-    MUTTER: 1,
-    METACITY: 2,
-    GNOMESHELL: 3
-};
-
+// Laziness
+Meta.MaximizeFlags.BOTH = Meta.MaximizeFlags.HORIZONTAL | Meta.MaximizeFlags.VERTICAL;
 
 let pinch = 1;
-let order = _ORDER_DEFAULT = ":minimize,maximize,close";
+let order = ":minimize,maximize,close";
+const _ORDER_DEFAULT = order;
 let dogtk = false;
 let theme = "default";
 let onlymax = false;
@@ -50,7 +53,7 @@ __proto__: PanelMenu.ButtonBox.prototype,
     _init: function () {
 
         //Load Settings
-        this._settings = new Gio.Settings({ schema: WA_SETTINGS_SCHEMA });
+        this._settings = Convenience.getSettings();
 
         //Create boxes for the buttons
         this.rightActor = new St.Bin({ style_class: 'box-bin'});
@@ -154,7 +157,7 @@ __proto__: PanelMenu.ButtonBox.prototype,
             order = GConf.Client.get_default().get_string("/desktop/gnome/shell/windows/button_layout");
         } else if (pinch === PinchType.METACITY) {
             order = GConf.Client.get_default().get_string("/apps/metacity/general/button_layout");
-        } else if (pinch === PinchType.GNOMESHELL) {
+        } else if (pinch === PinchType.GNOME_SHELL) {
             order = new Gio.Settings({ schema: 'org.gnome.shell.overrides' }).get_string('button-layout');
         }
         /* if order is null because keys don't exist, get them from settings (PinchType.CUSTOM) */
@@ -317,8 +320,8 @@ __proto__: PanelMenu.ButtonBox.prototype,
 
     enable: function () {
         let children = Main.panel._rightBox.get_children();
-        Main.panel._rightBox.add_actor(this.rightActor, children.length);
-        Main.panel._leftBox.add_actor(this.leftActor, 0);
+        Main.panel._rightBox.insert_child_at_index(this.rightActor, children.length);
+        Main.panel._leftBox.insert_child_at_index(this.leftActor, 0);
     },
 
     disable: function () {
