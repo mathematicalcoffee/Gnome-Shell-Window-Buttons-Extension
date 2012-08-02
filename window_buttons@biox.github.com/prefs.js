@@ -14,6 +14,7 @@ const Params = imports.misc.params;
 
 const Me = ExtensionUtils.getCurrentExtension();
 const Convenience = Me.imports.convenience;
+let extensionPath = Me.path;
 
 // Settings
 const WA_PINCH = 'pinch';
@@ -48,8 +49,42 @@ const WindowButtonsPrefsWidget = new GObject.Class({
         this._rownum = 0;
         this._settings = Convenience.getSettings();
 
-        // theme
-        this.addEntry("Name of theme to use:", WA_THEME);
+        // themes: look in extensionPath/themes
+        // TODO: disable this if dogtk
+        let info,
+            item = new Gtk.ComboBoxText(),
+            themes_dir = Gio.file_new_for_path(
+                GLib.build_filenamev([extensionPath, 'themes'])
+            ),
+            fileEnum = themes_dir.enumerate_children('standard::*',
+                    Gio.FileQueryInfoFlags.NONE, null);
+
+        while ((info = fileEnum.next_file(null)) !== null) {
+            let theme = info.get_name();
+            if (GLib.file_test(GLib.build_filenamev([themes_dir.get_path(),
+                    theme, 'style.css']), GLib.FileTest.EXISTS)) {
+                item.append(theme, theme);
+            }
+        }
+        fileEnum.close(null);
+
+        item.connect('changed', Lang.bind(this, function(combo) {
+            let value = combo.get_active_id();
+            if (value !== undefined && this._settings.get_string(WA_THEME) !== value) {
+                this._settings.set_string(WA_THEME, value)
+            }
+        }));
+        item.set_active_id(this._settings.get_string(WA_THEME) || 'default');
+        this.addRow("Which theme to use:", item);
+        this._themeCombo = item;
+
+        // dogtk
+        this._dogtk = this.addBoolean("Match Gtk theme if possible (OVERRIDES above theme)",
+                WA_DOGTK);
+        this._dogtk.connect('notify::active', Lang.bind(this, function () {
+            this._themeCombo.set_sensitive(!this._dogtk.active);
+        }));
+        this._themeCombo.set_sensitive(!this._dogtk.active);
 
         // order
         this.addEntry("Button order:\n(allowed: {'minimize', 'maximize', 'close', ':'})", WA_ORDER);
@@ -71,9 +106,6 @@ const WindowButtonsPrefsWidget = new GObject.Class({
             }
         }));
         this.addRow("Which button order to use:", item);
-
-        // dogtk
-        this.addBoolean("Match Gtk theme if possible", WA_DOGTK);
 
         // NOTE: these are not used anywhere (yet), although they are in the schema.
         /*
@@ -115,13 +147,13 @@ const WindowButtonsPrefsWidget = new GObject.Class({
         let item = new Gtk.Entry({ hexpand: true });
         item.text = this._settings.get_string(key);
         this._settings.bind(key, item, 'text', Gio.SettingsBindFlags.DEFAULT);
-        this.addRow(text, item);
+        return this.addRow(text, item);
     },
 
     addBoolean: function (text, key) {
         let item = new Gtk.Switch({active: this._settings.get_boolean(key)});
         this._settings.bind(key, item, 'active', Gio.SettingsBindFlags.DEFAULT);
-        this.addRow(text, item);
+        return this.addRow(text, item);
     },
 
     addSpin: function(label, key, adjustmentProperties, spinProperties) {
@@ -141,7 +173,7 @@ const WindowButtonsPrefsWidget = new GObject.Class({
                 this._settings.set_int(key, value);
             }
         }));
-        this.addRow(label, spinButton, true);
+        return this.addRow(label, spinButton, true);
     },
     
     addRow: function (text, widget, wrap) {
@@ -154,11 +186,13 @@ const WindowButtonsPrefsWidget = new GObject.Class({
         this.attach(label, 0, this._rownum, 1, 1); // col, row, colspan, rowspan
         this.attach(widget, 1, this._rownum, 1, 1);
         this._rownum++;
+        return widget;
     },
 
     addItem: function (widget, col, colspan, rowspan) {
         this.attach(widget, col || 0, this._rownum, colspan || 2, rowspan || 1);
         this._rownum++;
+        return widget;
     },
 });
 

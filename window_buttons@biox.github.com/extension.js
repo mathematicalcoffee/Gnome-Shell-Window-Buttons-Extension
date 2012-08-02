@@ -4,8 +4,9 @@
 const Lang = imports.lang;
 const St = imports.gi.St;
 const Main = imports.ui.main;
-const Gio = imports.gi.Gio;
 const GConf = imports.gi.GConf;
+const Gio = imports.gi.Gio;
+const GLib = imports.gi.GLib;
 const Meta = imports.gi.Meta;
 const PanelMenu = imports.ui.panelMenu;
 const Shell = imports.gi.Shell;
@@ -35,13 +36,7 @@ Meta.MaximizeFlags.BOTH = Meta.MaximizeFlags.HORIZONTAL | Meta.MaximizeFlags.VER
 // Laziness
 Meta.MaximizeFlags.BOTH = Meta.MaximizeFlags.HORIZONTAL | Meta.MaximizeFlags.VERTICAL;
 
-let pinch = 1;
-let order = ":minimize,maximize,close";
-const _ORDER_DEFAULT = order;
-let dogtk = false;
-let theme = "default";
-let onlymax = false;
-let hideonnomax = false;
+const _ORDER_DEFAULT = ":minimize,maximize,close";
 
 function WindowButtons() {
     this._init();
@@ -92,9 +87,9 @@ __proto__: PanelMenu.ButtonBox.prototype,
 
     _loadTheme: function () {
 
-        let oldtheme = theme;
-
-        dogtk = this._settings.get_boolean(WA_DOGTK);
+        let theme,
+            oldtheme = this.theme_path || false,
+            dogtk = this._settings.get_boolean(WA_DOGTK);
 
         if (dogtk) {
             // Get GTK theme name
@@ -104,41 +99,38 @@ __proto__: PanelMenu.ButtonBox.prototype,
         } else {
             theme = this._settings.get_string(WA_THEME);
         }
+        if (theme === oldtheme) {
+            return;
+        }
+        // log('_loadTheme: %s -> %s'.format(oldtheme.toString(), theme));
 
         // Get CSS of new theme, and check it exists, falling back to 'default'
-        let cssPath = extensionPath + '/themes/' + theme + '/style.css';
-        let cssFile = Gio.file_new_for_path(cssPath);
-        if (!cssFile.query_exists(null)) {
-            cssPath = extensionPath + '/themes/default/style.css';
+        let cssPath = GLib.build_filenamev([extensionPath, 'themes', theme,
+                                            'style.css']);
+        if (!GLib.file_test(cssPath, GLib.FileTest.EXISTS)) {
+            cssPath = GLib.build_filenamev([extensionPath,
+                                            'themes/default/style.css']);
         }
 
-        // Old method, requires restart really
-        St.ThemeContext.get_for_stage(global.stage).get_theme().load_stylesheet(cssPath);
+        let themeContext = St.ThemeContext.get_for_stage(global.stage),
+            currentTheme = themeContext.get_theme();
+        if (oldtheme) {
+            // unload the old style
+            currentTheme.unload_stylesheet(oldtheme);
+        }
+        // load the new style
+        currentTheme.load_stylesheet(cssPath);
+        // BIG TODO: how to ensure the style gets displayed? (lg forces it)
+        /*
+        if (this.rightActor.mapped) {
+            this.rightActor.ensure_style();
+        }
+        if (this.leftActor.mapped) {
+            this.leftActor.ensure_style();
+        }
+        */
 
-        // Reload shell theme with new style - only seems to work well with custom shell themes
-        //~ let themeContext = St.ThemeContext.get_for_stage(global.stage);
-        //~ let currentTheme = themeContext.get_theme();
-        //~ let newTheme = new St.Theme ({application_stylesheet: Main._cssStylesheet});
-        //~ if (currentTheme) {
-            //~ let customStylesheets = currentTheme.get_custom_stylesheets();
-            //~ for (let i = 0; i < customStylesheets.length; i++) {
-                //~ if (customStylesheets[i] !== extensionPath + '/themes/' + oldtheme + '/style.css') {
-                    //~ newTheme.load_stylesheet(customStylesheets[i]);
-                //~ }
-            //~ }
-        //~ }
-        //~ newTheme.load_stylesheet(cssPath);
-        //~ themeContext.set_theme(newTheme);
-
-        // Naughty bit to make "default" theme look better
-            //~ for (i in this.leftBox.get_children()) {
-                //~ if (theme === "default") {this.leftBox.get_children()[i].add_style_class_name("panel-button"); }
-                //~ else { this.leftBox.get_children()[i].remove_style_class_name("panel-button"); }
-            //~ }
-            //~ for (i in this.rightBox.get_children()) {
-                //~ if (theme === "default") {this.rightBox.get_children()[i].add_style_class_name("panel-button"); }
-                //~ else { this.rightBox.get_children()[i].remove_style_class_name("panel-button"); }
-            //~ }
+        this.theme_path = cssPath;
     },
 
     _display: function () {
@@ -151,7 +143,8 @@ __proto__: PanelMenu.ButtonBox.prototype,
             }
         }
 
-        pinch = this._settings.get_enum(WA_PINCH);
+        let pinch = this._settings.get_enum(WA_PINCH);
+        let order = _ORDER_DEFAULT;
 
         if (pinch === PinchType.MUTTER) {
             order = GConf.Client.get_default().get_string("/desktop/gnome/shell/windows/button_layout");
@@ -198,7 +191,8 @@ __proto__: PanelMenu.ButtonBox.prototype,
 
 
     _windowChanged: function () {
-        hideonnomax = this._settings.get_boolean(WA_HIDEONNOMAX);
+        let hideonnomax = this._settings.get_boolean(WA_HIDEONNOMAX),
+            onlymax = this._settings.get_boolean(WA_ONLYMAX);
         if (onlymax && hideonnomax) {
             let activeWindow = global.display.focus_window;
             if (this._upperMax()) {
@@ -226,8 +220,8 @@ __proto__: PanelMenu.ButtonBox.prototype,
     },
 
     _minimize: function () {
-        let activeWindow = global.display.focus_window;
-        onlymax = this._settings.get_boolean(WA_ONLYMAX);
+        let activeWindow = global.display.focus_window,
+            onlymax = this._settings.get_boolean(WA_ONLYMAX);
         if (activeWindow === null || activeWindow.get_title() === "Desktop") {
             // No windows are active, minimize the uppermost window
             let winactors = global.get_window_actors();
@@ -256,8 +250,8 @@ __proto__: PanelMenu.ButtonBox.prototype,
     },
 
     _maximize: function () {
-        let activeWindow = global.display.focus_window;
-        onlymax = this._settings.get_boolean(WA_ONLYMAX);
+        let activeWindow = global.display.focus_window,
+            onlymax = this._settings.get_boolean(WA_ONLYMAX);
         // window.maximize() did not exist when I started writing this extension!!?!
         if (activeWindow === null || activeWindow.get_title() === "Desktop") {
             // No windows are active, maximize the uppermost window
@@ -288,8 +282,8 @@ __proto__: PanelMenu.ButtonBox.prototype,
     },
 
     _close: function () {
-        let activeWindow = global.display.focus_window;
-        onlymax = this._settings.get_boolean(WA_ONLYMAX);
+        let activeWindow = global.display.focus_window,
+            onlymax = this._settings.get_boolean(WA_ONLYMAX);
         if (activeWindow === null || activeWindow.get_title() === "Desktop") {
             // No windows are active, close the uppermost window
             let winactors = global.get_window_actors();
