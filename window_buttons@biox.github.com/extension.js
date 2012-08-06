@@ -5,8 +5,10 @@ const Lang = imports.lang;
 const St = imports.gi.St;
 const Main = imports.ui.main;
 const GConf = imports.gi.GConf;
+const Gdk = imports.gi.Gdk;
 const Gio = imports.gi.Gio;
 const GLib = imports.gi.GLib;
+const Mainloop = imports.mainloop;
 const Meta = imports.gi.Meta;
 const PanelMenu = imports.ui.panelMenu;
 const Shell = imports.gi.Shell;
@@ -120,15 +122,11 @@ __proto__: PanelMenu.ButtonBox.prototype,
         }
         // load the new style
         currentTheme.load_stylesheet(cssPath);
-        // BIG TODO: how to ensure the style gets displayed? (lg forces it)
-        /*
-        if (this.rightActor.mapped) {
-            this.rightActor.ensure_style();
-        }
-        if (this.leftActor.mapped) {
-            this.leftActor.ensure_style();
-        }
-        */
+
+        // The following forces the new style to reload (it may not be the only
+        // way to do it; running the cursor over the buttons works too)
+        this.rightActor.grab_key_focus();
+        this.leftActor.grab_key_focus();
 
         this.theme_path = cssPath;
     },
