@@ -20,7 +20,7 @@ let extensionPath = Me.path;
 const WA_PINCH = 'pinch';
 const WA_ORDER = 'order';
 const WA_THEME = 'theme';
-const WA_DOGTK = 'dogtk';
+const WA_DO_METACITY = 'do-metacity';
 const WA_ONLYMAX = 'onlymax';
 const WA_HIDEONNOMAX = 'hideonnomax';
 const WA_LEFTPOS = 'leftpos';
@@ -50,7 +50,7 @@ const WindowButtonsPrefsWidget = new GObject.Class({
         this._settings = Convenience.getSettings();
 
         // themes: look in extensionPath/themes
-        // TODO: disable this if dogtk
+        // TODO: disable this if doMetacity
         let info,
             item = new Gtk.ComboBoxText(),
             themes_dir = Gio.file_new_for_path(
@@ -78,13 +78,14 @@ const WindowButtonsPrefsWidget = new GObject.Class({
         this.addRow("Which theme to use:", item);
         this._themeCombo = item;
 
-        // dogtk
-        this._dogtk = this.addBoolean("Match Gtk theme if possible (OVERRIDES above theme)",
-                WA_DOGTK);
-        this._dogtk.connect('notify::active', Lang.bind(this, function () {
-            this._themeCombo.set_sensitive(!this._dogtk.active);
+        // doMetacity
+        this._doMetacity = this.addBoolean("Match Metacity theme if possible\n" +
+            " (/apps/metacity/general/theme, OVERRIDES above theme)",
+            WA_DO_METACITY);
+        this._doMetacity.connect('notify::active', Lang.bind(this, function () {
+            this._themeCombo.set_sensitive(!this._doMetacity.active);
         }));
-        this._themeCombo.set_sensitive(!this._dogtk.active);
+        this._themeCombo.set_sensitive(!this._doMetacity.active);
 
         // order
         this.addEntry("Button order:\n(allowed: {'minimize', 'maximize', 'close', ':'})", WA_ORDER);

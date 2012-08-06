@@ -23,7 +23,7 @@ let extensionPath = "";
 const WA_PINCH = Prefs.WA_PINCH;
 const WA_ORDER = Prefs.WA_ORDER;
 const WA_THEME = Prefs.WA_THEME;
-const WA_DOGTK = Prefs.WA_DOGTK;
+const WA_DO_METACITY = Prefs.WA_DO_METACITY;
 const WA_ONLYMAX = Prefs.WA_ONLYMAX;
 const WA_HIDEONNOMAX = Prefs.WA_HIDEONNOMAX;
 const WA_LEFTPOS = Prefs.WA_LEFTPOS;
@@ -68,7 +68,7 @@ __proto__: PanelMenu.ButtonBox.prototype,
         this._loadTheme();
 
         //Connect to setting change events
-        this._settings.connect('changed::' + WA_DOGTK, Lang.bind(this, this._loadTheme));
+        this._settings.connect('changed::' + WA_DO_METACITY, Lang.bind(this, this._loadTheme));
         this._settings.connect('changed::' + WA_THEME, Lang.bind(this, this._loadTheme));
         this._settings.connect('changed::' + WA_ORDER, Lang.bind(this, this._display));
         this._settings.connect('changed::' + WA_PINCH, Lang.bind(this, this._display));
@@ -91,11 +91,11 @@ __proto__: PanelMenu.ButtonBox.prototype,
 
         let theme,
             oldtheme = this.theme_path || false,
-            dogtk = this._settings.get_boolean(WA_DOGTK);
+            doMetacity = this._settings.get_boolean(WA_DO_METACITY);
 
-        if (dogtk) {
-            // Get GTK theme name
-            //theme = new imports.gi.Gio.Settings({schema: "org.gnome.desktop.interface"}).get_string("gtk-theme");
+        if (doMetacity) {
+            // GTK theme name (e.g. Adwaita - we don't have a style for that yet!)
+            // theme = new imports.gi.Gio.Settings({schema: "org.gnome.desktop.interface"}).get_string("gtk-theme");
             // Get Mutter / Metacity theme name
             theme = GConf.Client.get_default().get_string("/apps/metacity/general/theme");
         } else {

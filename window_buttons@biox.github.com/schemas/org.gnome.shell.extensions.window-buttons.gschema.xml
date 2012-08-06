@@ -28,10 +28,10 @@
       <description>Use custom button order or the order pinch settings from mutter/metacity</description>
     </key>
     
-    <key type="b" name="dogtk">
+    <key type="b" name="do-metacity">
       <default>true</default>
-      <summary>Match gtk theme if possible</summary>
-      <description>Try to use the theme with the same name as the current gtk theme</description>
+      <summary>Match Metacity theme if possible</summary>
+      <description>Try to use the theme with the same name as the current metacity theme ('/apps/metacity/general/theme')</description>
     </key>
 
     <key type="i" name="leftpos">
