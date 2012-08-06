@@ -136,11 +136,17 @@ const WindowButtonsPrefsWidget = new GObject.Class({
         */
         
         // onlymax
-        this.addBoolean("Control only maximized windows", WA_ONLYMAX);
+        this._onlymax = this.addBoolean("Control only maximized windows",
+            WA_ONLYMAX);
 
         // hideonnomax
-        this.addBoolean("Hide if there are no maximized windows", WA_HIDEONNOMAX);
-        // TODO: disable this if WA_ONLYMAX is FALSE
+        this._hideonmax = this.addBoolean("Hide if there are no maximized windows",
+            WA_HIDEONNOMAX);
+        // enable with onlymax
+        this._onlymax.connect('notify::active', Lang.bind(this, function () {
+            this._hideonmax.set_sensitive(this._onlymax.active);
+        }));
+        this._hideonmax.set_sensitive(this._onlymax.active);
 
     },
 
