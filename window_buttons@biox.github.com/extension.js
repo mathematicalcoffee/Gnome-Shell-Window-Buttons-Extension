@@ -31,6 +31,7 @@ const WA_RIGHTPOS = Prefs.WA_RIGHTPOS;
 
 // Keep enums in sync with GSettings schemas
 const PinchType = Prefs.PinchType;
+const Boxes = Prefs.Boxes;
 
 // Laziness
 Meta.MaximizeFlags.BOTH = Meta.MaximizeFlags.HORIZONTAL | Meta.MaximizeFlags.VERTICAL;
@@ -172,7 +173,7 @@ __proto__: PanelMenu.ButtonBox.prototype,
                 let button = new St.Button({ style_class: orderRight[i]  + ' window-button', track_hover: true });
                 //button.set_tooltip_text(buttonlist[orderRight[i]][0]);
                 button.connect('button-press-event', Lang.bind(this, buttonlist[orderRight[i]][1]));
-                this.rightBox.add_actor(button);
+                this.rightBox.add(button);
             }
         }
 
@@ -309,16 +310,59 @@ __proto__: PanelMenu.ButtonBox.prototype,
         }
     },
 
+    /* helper function: convert Boxes.{LEFT,RIGHT,MIDDLE} into
+     * Main.panel.{_leftBox, _rightBox, _centerBox}
+     */
+    _getBox: function (boxEnum) {
+        let box = null;
+        switch (boxEnum) {
+            case Boxes.MIDDLE:
+                box = Main.panel._centerBox;
+                break;
+            case Boxes.LEFT:
+                box = Main.panel._leftBox;
+                break;
+            case Boxes.RIGHT:
+            default:
+                box = Main.panel._rightBox;
+                break;
+        }
+        return box;
+    },
+
+    /* helper function: convert position.{left,right}.position to a position
+     * that insert_actor can handle.
+     */
+    _getPosition: function (actor, position) {
+        if (position < 0) {
+            return actor.get_children().length + position + 1;
+        } else { // position 1 ("first item on the left") is index 0
+            return Math.max(0, position - 1);
+        }
+    },
 
     enable: function () {
-        let children = Main.panel._rightBox.get_children();
-        Main.panel._rightBox.insert_child_at_index(this.rightActor, children.length);
-        Main.panel._leftBox.insert_child_at_index(this.leftActor, 0);
+        let leftbox = this._settings.get_enum(WA_LEFTBOX),
+            rightbox = this._settings.get_enum(WA_RIGHTBOX),
+            leftpos = this._settings.get_int(WA_LEFTPOS),
+            rightpos = this._settings.get_int(WA_RIGHTPOS);
+
+        this._leftContainer = this._getBox(leftbox);
+        this._rightContainer = this._getBox(rightbox);
+
+        // A delay is needed to let all the other icons load first.
+        Mainloop.idle_add(Lang.bind(this, function () {
+            this._leftContainer.insert_actor(this.leftActor,
+                    this._getPosition(this._leftContainer, leftpos));
+            this._rightContainer.insert_actor(this.rightActor,
+                    this._getPosition(this._rightContainer, rightpos));
+            return false;
+        }));
     },
 
     disable: function () {
-        Main.panel._rightBox.remove_actor(this.leftActor);
-        Main.panel._rightBox.remove_actor(this.rightActor);
+        this._leftContainer.remove_actor(this.leftActor);
+        this._rightContainer.remove_actor(this.rightActor);
     }
 };
 

@@ -23,8 +23,10 @@ const WA_THEME = 'theme';
 const WA_DO_METACITY = 'do-metacity';
 const WA_ONLYMAX = 'onlymax';
 const WA_HIDEONNOMAX = 'hideonnomax';
-const WA_LEFTPOS = 'leftpos';
-const WA_RIGHTPOS = 'rightpos';
+const WA_LEFTBOX = 'box-left';
+const WA_LEFTPOS = 'position-left';
+const WA_RIGHTBOX = 'box-right';
+const WA_RIGHTPOS = 'position-right';
 
 
 // Keep enums in sync with GSettings schemas
@@ -34,6 +36,26 @@ const PinchType = {
     METACITY: 2,
     GNOME_SHELL: 3
 };
+
+// Which box to place things in.
+const Boxes = {
+    LEFT: 0,
+    RIGHT: 1,
+    MIDDLE: 2
+};
+// EXAMPLES:
+// Put as the right-most item in the status bar:
+//     box: Boxes.RIGHT,
+//     position: -1
+// Put as the left-most item in the status bar:
+//     box: Boxes.RIGHT,
+//     position: 1
+// Put right after the title-bar:
+//     box: Boxes.LEFT,
+//     position: -1
+// Put in before the title-bar (between 'Activities' and the title bar):
+//     box: Boxes.LEFT,
+//     position: 2
 
 function init() {
 }

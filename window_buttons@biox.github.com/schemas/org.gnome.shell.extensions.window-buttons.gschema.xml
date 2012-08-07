@@ -8,6 +8,12 @@
     <value value='3' nick='GNOME-shell'/>
   </enum>
 
+  <enum id='org.gnome.shell.extensions.window-buttons.BoxType'>
+    <value value='0' nick='Left'/>
+    <value value='1' nick='Right'/>
+    <value value='2' nick='Middle'/>
+  </enum>
+
   <schema path="/org/gnome/shell/extensions/window-buttons/" id="org.gnome.shell.extensions.window-buttons">
 
     <key type="s" name="order">
@@ -34,16 +40,28 @@
       <description>Try to use the theme with the same name as the current metacity theme ('/apps/metacity/general/theme')</description>
     </key>
 
-    <key type="i" name="leftpos">
-      <default>0</default>
-      <summary>Left Position</summary>
-      <description>How far left should the left-hand buttons be placed. 0 = furthest left.</description>
+    <key name="box-left" enum="org.gnome.shell.extensions.window-buttons.BoxType">
+        <default>'Left'</default>
+        <summary>Box to put left buttons in</summary>
+        <description>'Left' : buttons placed in the left box (activities + window title button); 'Right': buttons placed in the right box (status area); 'Middle': buttons placed in the centre box (date/time, unless you have (e.g.) Frippery Move Clock extension, in which case the centre box is empty and in between the left and right boxes)</description>
     </key>
 
-    <key type="i" name="rightpos">
-      <default>0</default>
-      <summary>Right Position</summary>
-      <description>How far right should the right-hand buttons be placed. 0 = furthest right.</description>
+    <key name="box-right" enum="org.gnome.shell.extensions.window-buttons.BoxType">
+        <default>'Right'</default>
+        <summary>Box to put right buttons in</summary>
+        <description>'Left' : buttons placed in the left box (activities + window title button); 'Right': buttons placed in the right box (status area); 'Middle': buttons placed in the centre box (date/time, unless you have (e.g.) Frippery Move Clock extension, in which case the centre box is empty and in between the left and right boxes)</description>
+    </key>
+
+    <key type="i" name="position-left">
+        <default>2</default>
+        <summary>Position of the left buttons</summary>
+        <description>1 means 'first item from the left', 2 means 'second item from the left', and so on. Use negative numbers to mean 'from the right' (-1 is 'first item from the right').</description>
+    </key>
+
+    <key type="i" name="position-right">
+        <default>-1</default>
+        <summary>Position of the right buttons</summary>
+        <description>1 means 'first item from the left', 2 means 'second item from the left', and so on. Use negative numbers to mean 'from the right' (-1 is 'first item from the right').</description>
     </key>
     
     <key type="b" name="onlymax">
