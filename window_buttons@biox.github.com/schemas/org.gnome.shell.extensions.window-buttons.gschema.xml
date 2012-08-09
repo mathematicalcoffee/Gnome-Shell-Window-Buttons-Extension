@@ -67,7 +67,7 @@
     <key type="b" name="onlymax">
       <default>false</default>
       <summary>Control only maximized windows</summary>
-      <description>Prioritise controlling windows which are maximized.</description>
+      <description>Prioritise controlling windows which are maximized (pressing buttons will control the uppermost maximized window rather than the current active one).</description>
     </key>
     
     <key type="b" name="hideonnomax">
