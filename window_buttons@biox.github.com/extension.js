@@ -3,17 +3,18 @@
 
 const Lang = imports.lang;
 const St = imports.gi.St;
-const Main = imports.ui.main;
 const GConf = imports.gi.GConf;
 const Gdk = imports.gi.Gdk;
 const Gio = imports.gi.Gio;
 const GLib = imports.gi.GLib;
 const Mainloop = imports.mainloop;
 const Meta = imports.gi.Meta;
-const PanelMenu = imports.ui.panelMenu;
 const Shell = imports.gi.Shell;
 
 const ExtensionUtils = imports.misc.extensionUtils;
+const Main = imports.ui.main;
+const PanelMenu = imports.ui.panelMenu;
+
 const Me = ExtensionUtils.getCurrentExtension();
 const Convenience = Me.imports.convenience;
 const Prefs = Me.imports.prefs;
@@ -26,8 +27,10 @@ const WA_THEME = Prefs.WA_THEME;
 const WA_DO_METACITY = Prefs.WA_DO_METACITY;
 const WA_ONLYMAX = Prefs.WA_ONLYMAX;
 const WA_HIDEONNOMAX = Prefs.WA_HIDEONNOMAX;
+const WA_LEFTBOX = Prefs.WA_LEFTBOX;
 const WA_LEFTPOS = Prefs.WA_LEFTPOS;
 const WA_RIGHTPOS = Prefs.WA_RIGHTPOS;
+const WA_RIGHTBOX = Prefs.WA_RIGHTBOX;
 
 // Keep enums in sync with GSettings schemas
 const PinchType = Prefs.PinchType;
@@ -36,10 +39,38 @@ const Boxes = Prefs.Boxes;
 // Laziness
 Meta.MaximizeFlags.BOTH = Meta.MaximizeFlags.HORIZONTAL | Meta.MaximizeFlags.VERTICAL;
 
-// Laziness
-Meta.MaximizeFlags.BOTH = Meta.MaximizeFlags.HORIZONTAL | Meta.MaximizeFlags.VERTICAL;
-
 const _ORDER_DEFAULT = ":minimize,maximize,close";
+
+/* convert Boxes.{LEFT,RIGHT,MIDDLE} into
+ * Main.panel.{_leftBox, _rightBox, _centerBox}
+ */
+function getBox(boxEnum) {
+    let box = null;
+    switch (boxEnum) {
+        case Boxes.MIDDLE:
+            box = Main.panel._centerBox;
+            break;
+        case Boxes.LEFT:
+            box = Main.panel._leftBox;
+            break;
+        case Boxes.RIGHT:
+        default:
+            box = Main.panel._rightBox;
+            break;
+    }
+    return box;
+}
+
+/* Convert position.{left,right}.position to a position that insert_actor can
+ * handle.
+ */
+function getPosition(actor, position) {
+    if (position < 0) {
+        return actor.get_children().length + position + 1;
+    } else { // position 1 ("first item on the left") is index 0
+        return Math.max(0, position - 1);
+    }
+}
 
 function WindowButtons() {
     this._init();
@@ -49,43 +80,12 @@ WindowButtons.prototype = {
 __proto__: PanelMenu.ButtonBox.prototype,
 
     _init: function () {
-
         //Load Settings
         this._settings = Convenience.getSettings();
 
-        //Create boxes for the buttons
-        this.rightActor = new St.Bin({ style_class: 'box-bin'});
-        this.rightBox = new St.BoxLayout({ style_class: 'button-box' });
-        this.leftActor = new St.Bin({ style_class: 'box-bin'});
-        this.leftBox = new St.BoxLayout({ style_class: 'button-box' });
-
-        //Add boxes to bins
-        this.rightActor.add_actor(this.rightBox);
-        this.leftActor.add_actor(this.leftBox);
-        //Add button to boxes
-        this._display();
-
-        //Load Theme
-        this._loadTheme();
-
-        //Connect to setting change events
-        this._settings.connect('changed::' + WA_DO_METACITY, Lang.bind(this, this._loadTheme));
-        this._settings.connect('changed::' + WA_THEME, Lang.bind(this, this._loadTheme));
-        this._settings.connect('changed::' + WA_ORDER, Lang.bind(this, this._display));
-        this._settings.connect('changed::' + WA_PINCH, Lang.bind(this, this._display));
-        this._settings.connect('changed::' + WA_HIDEONNOMAX, Lang.bind(this, this._windowChanged));
-
-        //Connect to window change events
-        Shell.WindowTracker.get_default().connect('notify::focus-app', Lang.bind(this, this._windowChanged));
-        global.window_manager.connect('switch-workspace', Lang.bind(this, this._windowChanged));
-        global.window_manager.connect('minimize', Lang.bind(this, this._windowChanged));
-        global.window_manager.connect('maximize', Lang.bind(this, this._windowChanged));
-        global.window_manager.connect('unmaximize', Lang.bind(this, this._windowChanged));
-        global.window_manager.connect('map', Lang.bind(this, this._windowChanged));
-        global.window_manager.connect('destroy', Lang.bind(this, this._windowChanged));
-
-        // Show or hide buttons
-        this._windowChanged();
+        this._wmSignals = [];
+        this._windowTrackerSignal = 0;
+        this._locked = false;
     },
 
     _loadTheme: function () {
@@ -133,6 +133,8 @@ __proto__: PanelMenu.ButtonBox.prototype,
     },
 
     _display: function () {
+        // TODO: if order changes I don't have to destroy all the children,
+        // I can just re-insert them!
 
         let boxes = [ this.leftBox, this.rightBox ];
         for (let box = 0; box < boxes.length; ++box) {
@@ -161,15 +163,30 @@ __proto__: PanelMenu.ButtonBox.prototype,
             order = _ORDER_DEFAULT;
         }
 
+
         let buttonlist = {  minimize : ['Minimize', this._minimize],
                             maximize : ['Maximize', this._maximize],
                             close    : ['Close', this._close] },
-            orders     = order.replace(/ /g, '').split(':'),
-            orderLeft  = orders[0].split(','),
+            orders     = order.replace(/ /g, '').split(':');
+
+        /* Validate order */
+        if (orders.length === 1) {
+            // didn't have a ':'
+            log("Malformed order (no ':'), will insert at the front");
+            orders = ['', orders[0]];
+        }
+
+        let orderLeft  = orders[0].split(','),
             orderRight = orders[1].split(',');
 
         if (orderRight != "") {
             for (let i = 0; i < orderRight.length; ++i) {
+                if (!buttonlist[orderRight[i]]) {
+                    // skip if the butto name is not right...
+                    log('[Window Buttons] warning: \'%s\' is not a valid button'.format(
+                                orderRight[i]));
+                    continue;
+                }
                 let button = new St.Button({ style_class: orderRight[i]  + ' window-button', track_hover: true });
                 //button.set_tooltip_text(buttonlist[orderRight[i]][0]);
                 button.connect('button-press-event', Lang.bind(this, buttonlist[orderRight[i]][1]));
@@ -179,15 +196,19 @@ __proto__: PanelMenu.ButtonBox.prototype,
 
         if (orderLeft != "") {
             for (let i = 0; i < orderLeft.length; ++i) {
+                if (!buttonlist[orderLeft[i]]) {
+                    log('[Window Buttons] warning: \'%s\' is not a valid button'.format(
+                                orderLeft[i]));
+                    // skip if the butto name is not right...
+                    continue;
+                }
                 let button = new St.Button({ style_class: orderLeft[i] + ' window-button' });
                 //button.set_tooltip_text(buttonlist[orderLeft[i]][0]);
                 button.connect('button-press-event', Lang.bind(this, buttonlist[orderLeft[i]][1]));
                 this.leftBox.add(button);
             }
         }
-
     },
-
 
     _windowChanged: function () {
         let hideonnomax = this._settings.get_boolean(WA_HIDEONNOMAX),
@@ -310,60 +331,157 @@ __proto__: PanelMenu.ButtonBox.prototype,
         }
     },
 
-    /* helper function: convert Boxes.{LEFT,RIGHT,MIDDLE} into
-     * Main.panel.{_leftBox, _rightBox, _centerBox}
-     */
-    _getBox: function (boxEnum) {
-        let box = null;
-        switch (boxEnum) {
-            case Boxes.MIDDLE:
-                box = Main.panel._centerBox;
-                break;
-            case Boxes.LEFT:
-                box = Main.panel._leftBox;
-                break;
-            case Boxes.RIGHT:
-            default:
-                box = Main.panel._rightBox;
-                break;
+    _onPositionChange: function (settings, positionKey, boxKey) {
+        if (this._locked) {
+            return;
         }
-        return box;
-    },
+        let pos = this._settings.get_int(positionKey),
+            newPos = pos,
+            box = this._settings.get_enum(boxKey),
+            newBox = box,
+            n = getBox(box).get_children().length;
 
-    /* helper function: convert position.{left,right}.position to a position
-     * that insert_actor can handle.
-     */
-    _getPosition: function (actor, position) {
-        if (position < 0) {
-            return actor.get_children().length + position + 1;
-        } else { // position 1 ("first item on the left") is index 0
-            return Math.max(0, position - 1);
+        // if pos is 0, we are waiting on a box change and then another
+        // position change with the proper non-zero position (this is since
+        // we can't import Main from prefs.js to check the number of
+        // children in Main.panel._xxxBox).
+        if (pos === 0) {
+            return;
         }
+
+        this._locked = true;
+        log('calculating position change');
+        if (pos < -n) { // moving left through to the next box
+            // we have to process a change in the box
+            newBox = Prefs.cycleBox(box, false);
+            newPos = -1;
+        } else if (pos > n) { // moving right through to the next box
+            newBox = Prefs.cycleBox(box, true);
+            newPos = 1;
+
+        // When we pass the half-way mark, switch from anchoring left to
+        // anchoring right (or vice versa moving backwards).
+        } else if (pos > 0 && pos > (n + 1) / 2) {
+            // BIG TODO: these are not working somehow.
+            newPos = pos - n - 1;
+        } else if (pos < 0 && -pos > (n + 1) / 2)  {
+            newPos = n + pos + 1;
+        } else if (pos === 0) {
+            // should have been taken care of
+            log('!!! [Window Buttons] !!! pos === 0, this shouldn\'t happen');
+            // will just guess pos = 1 ... (move to LHS of the current box)
+            newPos = 1;
+        }
+
+        if (newBox !== box) {
+            this._settings.set_enum(boxKey, newBox);
+        }
+        if (newPos !== pos) {
+            this._settings.set_int(positionKey, newPos);
+        }
+
+        // now actually process the changes.
+        // FIXME: in GNOME 3.4 can use .set_child_at_index.
+        let container = (positionKey === WA_LEFTPOS ? '_leftContainer' :
+            '_rightContainer'),
+            actor = (positionKey === WA_LEFTPOS ? this.leftActor :
+                this.rightActor);
+        box = getBox(newBox);
+        this[container].remove_actor(actor);
+        this._leftContainer.remove_actor(this.leftActor);
+        if (this[container] !== box) {
+            this[container] = box;
+        }
+        // TODO: has nchildren updated by now? should we do getPosition
+        // ourselves?
+        this[container].insert_child_at_index(actor, getPosition(this[container], newPos));
+
+        log('final: box ' + newBox + ', position ' + newPos);
+        this._locked = false;
     },
 
     enable: function () {
+        //Create boxes for the buttons
+        this.rightActor = new St.Bin({ style_class: 'box-bin'});
+        this.rightBox = new St.BoxLayout({ style_class: 'button-box' });
+        this.leftActor = new St.Bin({ style_class: 'box-bin'});
+        this.leftBox = new St.BoxLayout({ style_class: 'button-box' });
+
+        //Add boxes to bins
+        this.rightActor.add_actor(this.rightBox);
+        this.leftActor.add_actor(this.leftBox);
+        //Add button to boxes
+        this._display();
+
+        //Load Theme
+        this._loadTheme();
+
+        //Connect to setting change events
+        this._settings.connect('changed::' + WA_DO_METACITY, Lang.bind(this, this._loadTheme));
+        this._settings.connect('changed::' + WA_THEME, Lang.bind(this, this._loadTheme));
+        this._settings.connect('changed::' + WA_ORDER, Lang.bind(this, this._display));
+        this._settings.connect('changed::' + WA_PINCH, Lang.bind(this, this._display));
+        this._settings.connect('changed::' + WA_HIDEONNOMAX, Lang.bind(this, this._windowChanged));
+
+        this._settings.connect('changed::' + WA_LEFTPOS, Lang.bind(this, 
+                    this._onPositionChange, WA_LEFTBOX));
+        this._settings.connect('changed::' + WA_RIGHTPOS, Lang.bind(this, 
+                    this._onPositionChange, WA_RIGHTBOX));
+
+        this._settings.connect('changed::' + WA_LEFTBOX, Lang.bind(this,
+                    this._onPositionChange, WA_LEFTBOX));
+        this._settings.connect('changed::' + WA_RIGHTBOX, Lang.bind(this,
+                    this._onPositionChange, WA_RIGHTBOX));
+
+        // Connect to window change events
+        this._wmSignals = [];
+        this._windowTrackerSignal = Shell.WindowTracker.get_default().connect(
+                'notify::focus-app', Lang.bind(this, this._windowChanged));
+        this._wmSignals.push(global.window_manager.connect('switch-workspace',
+            Lang.bind(this, this._windowChanged)));
+        this._wmSignals.push(global.window_manager.connect('minimize',
+			Lang.bind(this, this._windowChanged)));
+        this._wmSignals.push(global.window_manager.connect('maximize',
+			Lang.bind(this, this._windowChanged)));
+        this._wmSignals.push(global.window_manager.connect('unmaximize',
+			Lang.bind(this, this._windowChanged)));
+        this._wmSignals.push(global.window_manager.connect('map',
+			Lang.bind(this, this._windowChanged)));
+        this._wmSignals.push(global.window_manager.connect('destroy',
+			Lang.bind(this, this._windowChanged)));
+
         let leftbox = this._settings.get_enum(WA_LEFTBOX),
             rightbox = this._settings.get_enum(WA_RIGHTBOX),
             leftpos = this._settings.get_int(WA_LEFTPOS),
             rightpos = this._settings.get_int(WA_RIGHTPOS);
 
-        this._leftContainer = this._getBox(leftbox);
-        this._rightContainer = this._getBox(rightbox);
+        this._leftContainer = getBox(leftbox);
+        this._rightContainer = getBox(rightbox);
 
         // A delay is needed to let all the other icons load first.
         Mainloop.idle_add(Lang.bind(this, function () {
-            this._leftContainer.insert_actor(this.leftActor,
-                    this._getPosition(this._leftContainer, leftpos));
-            this._rightContainer.insert_actor(this.rightActor,
-                    this._getPosition(this._rightContainer, rightpos));
+            this._leftContainer.insert_child_at_index(this.leftActor,
+                    getPosition(this._leftContainer, leftpos));
+            this._rightContainer.insert_child_at_index(this.rightActor,
+                    getPosition(this._rightContainer, rightpos));
             return false;
         }));
+
+        // Show or hide buttons
+        this._windowChanged();
     },
 
     disable: function () {
         this._leftContainer.remove_actor(this.leftActor);
         this._rightContainer.remove_actor(this.rightActor);
-    }
+
+        /* disconnect all signals */
+        this._settings.disconnectAll();
+        Shell.WindowTracker.get_default().disconnect(this._windowTrackerSignal);
+        for (let i = 0; i < this._wmSignals; ++i) {
+            global.window_manager.disconnect(this._wmSignals.pop());
+        }
+    },
 };
 
 function init(extensionMeta) {

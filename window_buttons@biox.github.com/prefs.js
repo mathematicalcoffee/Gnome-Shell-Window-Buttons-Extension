@@ -43,19 +43,25 @@ const Boxes = {
     RIGHT: 1,
     MIDDLE: 2
 };
-// EXAMPLES:
-// Put as the right-most item in the status bar:
-//     box: Boxes.RIGHT,
-//     position: -1
-// Put as the left-most item in the status bar:
-//     box: Boxes.RIGHT,
-//     position: 1
-// Put right after the title-bar:
-//     box: Boxes.LEFT,
-//     position: -1
-// Put in before the title-bar (between 'Activities' and the title bar):
-//     box: Boxes.LEFT,
-//     position: 2
+
+/* **** HELPER FUNCTIONS *** */
+function cycleBox(boxEnum, forward) {
+    let nextBox = boxEnum;
+    switch(boxEnum) {
+        case Boxes.LEFT:
+            nextBox = (forward ? Boxes.MIDDLE : Boxes.LEFT);
+            break;
+        case Boxes.MIDDLE:
+            nextBox = (forward ? Boxes.RIGHT : Boxes.LEFT);
+            break;
+        case Boxes.RIGHT:
+            nextBox = (forward ? Boxes.RIGHT : Boxes.MIDDLE);
+            break;
+    }
+    return nextBox;
+}
+
+/* **** prefs.js *** */
 
 function init() {
 }
@@ -70,6 +76,8 @@ const WindowButtonsPrefsWidget = new GObject.Class({
         this.margin = this.row_spacing = this.column_spacing = 10;
         this._rownum = 0;
         this._settings = Convenience.getSettings();
+
+        Gtk.Settings.get_default().gtk_button_images = true;
 
         // themes: look in extensionPath/themes
         // TODO: disable this if doMetacity
@@ -110,7 +118,26 @@ const WindowButtonsPrefsWidget = new GObject.Class({
         this._themeCombo.set_sensitive(!this._doMetacity.active);
 
         // order
-        this.addEntry("Button order:\n(allowed: {'minimize', 'maximize', 'close', ':'})", WA_ORDER);
+        this._order = this.addEntry("Button order:\n(allowed: {'minimize', 'maximize', 'close', ':'})", WA_ORDER);
+        /* insert controls for moving buttons */
+        this._positionLeft = this._makeLeftRightButtons(
+                "Position the left set of buttons", WA_LEFTBOX, WA_LEFTPOS);
+        this._positionRight = this._makeLeftRightButtons(
+                "Position the right set of buttons", WA_RIGHTBOX, WA_RIGHTPOS);
+        // disable if no left or right set of buttons to move.
+        let [l,r] = this._order.text.split(':');
+        if (r !== undefined) {
+            this._positionLeft.set_sensitive(l.length);
+            this._positionRight.set_sensitive(r.length);
+        }
+
+        this._order.connect('notify::text', Lang.bind(this, function () {
+            let [l,r] = this._order.text.split(':');
+            if (r !== undefined) {
+                this._positionLeft.set_sensitive(l.length);
+                this._positionRight.set_sensitive(r.length);
+            }
+        }));
 
         // pinch
         let item = new Gtk.ComboBoxText();
@@ -131,32 +158,6 @@ const WindowButtonsPrefsWidget = new GObject.Class({
         this.addRow("Which button order to use:", item);
 
         // NOTE: these are not used anywhere (yet), although they are in the schema.
-        /*
-        // leftpos
-        this.addSpin("How far the left-hand buttons are placed\n(0 = furthest left)",
-            WA_LEFTPOS,
-            {lower: 0,
-             upper: 10,
-             step_increment: 1
-            },
-            {digits: 0,
-             snap_to_ticks: true,
-             numeric: true
-            });
-
-        // rightpos
-        this.addSpin("How far the right-hand buttons are placed\n(0 = furthest right)",
-            WA_LEFTPOS,
-            {lower: 0,
-             upper: 10,
-             step_increment: 1
-            },
-            {digits: 0,
-             snap_to_ticks: true,
-             numeric: true
-            });
-        */
-        
         // onlymax
         this._onlymax = this.addBoolean("Control only maximized windows",
             WA_ONLYMAX);
@@ -170,6 +171,68 @@ const WindowButtonsPrefsWidget = new GObject.Class({
         }));
         this._hideonmax.set_sensitive(this._onlymax.active);
 
+    },
+
+    /* insert controls for moving buttons */
+    _makeLeftRightButtons: function(label, boxKey, positionKey) {
+        // EXAMPLES:
+        // Put as the right-most item in the status bar:
+        //     box: Boxes.RIGHT,
+        //     position: -1
+        // Put as the left-most item in the status bar:
+        //     box: Boxes.RIGHT,
+        //     position: 1
+        // Put right after the title-bar:
+        //     box: Boxes.LEFT,
+        //     position: -1
+        // Put in before the title-bar (between 'Activities' and the title bar):
+        //     box: Boxes.LEFT,
+        //     position: 2
+        let hgrid = new Gtk.Grid({column_homogeneous: true}),
+            item = Gtk.Button.new_from_stock(Gtk.STOCK_GO_BACK);
+        item.connect('clicked', Lang.bind(this, function () {
+            let pos = this._settings.get_int(positionKey) - 1,
+                box = this._settings.get_enum(boxKey),
+                newBox = cycleBox(box, false);
+
+            if (pos === 0 && box === newBox) {
+                // no change
+                return;
+            }
+
+            this._settings.set_int(positionKey, pos);
+
+            // We go through the front of a box into the previous one:
+            // send a new box change and then a new position change.
+            if (pos === 0) {
+                // cycle through to the previous box.
+                this._settings.set_enum(boxKey, newBox);
+                this._settings.set_int(positionKey, -1);
+            }
+        }));
+        hgrid.attach(item, 0, 0, 1, 1); // col, row, colspan, rowspan
+        item = Gtk.Button.new_from_stock(Gtk.STOCK_GO_FORWARD);
+        item.connect('clicked', Lang.bind(this, function () {
+            let pos = this._settings.get_int(positionKey) + 1,
+                box = this._settings.get_enum(boxKey),
+                newBox = cycleBox(box, true);
+
+            if (pos === 0 && box === newBox) {
+                return;
+            } // no change
+
+            this._settings.set_int(positionKey, pos);
+
+            // We go through the end of a box into the next one:
+            // send a new box change and then a new position change.
+            if (pos === 0) {
+                // cycle through to the previous box.
+                this._settings.set_enum(boxKey, newBox);
+                this._settings.set_int(positionKey, 1);
+            }
+        }));
+        hgrid.attach(item, 1, 0, 1, 1);
+        return this.addRow(label, hgrid);
     },
 
     addEntry: function (text, key) {
