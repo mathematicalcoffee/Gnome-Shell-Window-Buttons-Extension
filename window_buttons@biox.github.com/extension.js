@@ -28,45 +28,107 @@ const PinchType = {
     GNOME_SHELL: 3
 };
 
+// Which box to place things in.
+const Boxes = {
+    LEFT: 0,
+    RIGHT: 1,
+    MIDDLE: 2
+};
+
 // The order of the window buttons (e.g. :minimize,maximize,close). 
-// Colon represents the stuff in the middle (title bar, ...).
+// Colon splits the buttons into two groups, left and right, which can be
+// positioned separately.
 // If you wish to use this order (rather than the Mutter/Metacity one), you must set
 // the 'pinch' variable below to PinchType.CUSTOM.
 const order = ':minimize,maximize,close';
 
-// The name of the theme to use
-const theme = 'default';
-
-// Use custom button order or the order pinch settings from mutter/metacity.
+// Use custom button order or pinch order settings from mutter/metacity.
 // Options: PinchType.MUTTER    (use /desktop/gnome/shell/windows/button_layout)
 //          PinchType.METACITY  (use /apps/metacity/general/button_layout)
+//          PinchType.GNOME_SHELL(use /org/gnome/shell/overrides/button-layout)
 //          PinchType.CUSTOM    (use the 'order' variable above)
 const pinch = PinchType.MUTTER;
 
-// Try to use the theme with the same name as the current gtk theme
-const dogtk = true;
+// The name of the theme to use (the name of one of the folders in 'themes')
+const theme = 'default';
 
-// How far left should the left-hand buttons be placed. 0 = furthest left.
-const leftpos = 0;
+// Should we take the theme from the current Metacity theme instead
+// (/apps/metacity/general/theme)? If true this will OVERRIDE the above 'theme'.
+const doMetacity = false;
 
-// How far right should the right-hand buttons be placed. 0 = furthest right.
-const rightpos = 0;
 
-// Prioritise controlling windows which are maximized.
+// How to position the left and right groups of buttons.
+// The position is defined by two properties: 'box' and 'position'.
+//
+// The 'box' value is which box in the top panel to put the buttons in:
+// * Boxes.LEFT means in the left box (usually holds the activities and
+//   window title buttons)
+// * Boxes.MIDDLE means the centre box (usually holds the date/time, unless
+//   you have an extension that moves the clock to the right for you)
+// * Boxes.RIGHT means the right box (status area, user menu).
+//
+// The 'position' value is where *within* the box you want the buttons to be
+// placed.
+// Example: 1 means you want them to be the 'first item from the left', 2 means
+//  they'll be the 'second item from the left', and so on.
+// -1 means it'll be the first item from the *right*, -2 means second item from
+//  the right, and so on.
+// (Don't set it to 0: this will have undefined behaviour).
+// EXAMPLES:
+// Put as the right-most item in the status bar:
+//     box: Boxes.RIGHT,
+//     position: -1
+// Put as the left-most item in the status bar (i.e. after the title bar but
+//  as far right as possible):
+//     box: Boxes.RIGHT,
+//     position: 1
+// Put right after the title-bar (no gap in between):
+//     box: Boxes.LEFT,
+//     position: -1
+// Put in before the title-bar (between 'Activities' and the title bar):
+//     box: Boxes.LEFT,
+//     position: 2
+const buttonPosition = {
+    left: {
+        // Position of the left group of buttons (if any). Change as you like.
+        // Default: between the activities bar and the app menu, i.e. second
+        //  item from the left in the left box.
+        box: Boxes.LEFT,
+        position: 2
+    },
+
+    right: {
+        // Position of the right group of buttons (if any). Change as you like.
+        // Default: after the title bar as far right as possible, i.e. the first
+        // item from the left in the right box.
+        box: Boxes.RIGHT,
+        position: 1
+    }
+};
+
+// Prioritise controlling windows which are maximized. Clicking one of the
+// window buttons will affect the upper-most maximized window if any, which
+// may not necessarily be the focused window. If there are no maximized windows
+// it will affect the current focused window.
 const onlymax = false;
 
-// Hide the window buttons if there are no maximized windows to control. Only works if controling only maximized windows. Only has any effect is the 'onlymax' option is set.
+// Hide the window buttons if there are no maximized windows to control.
+// **Only has any effect is the 'onlymax' option above is set to true**
 const hideonnomax = false;
 
 /*********** CODE. LEAVE THE FOLLOWING **************/
 const Lang = imports.lang;
 const St = imports.gi.St;
-const Main = imports.ui.main;
-const Gio = imports.gi.Gio;
 const GConf = imports.gi.GConf;
+const Gdk = imports.gi.Gdk;
+const Gio = imports.gi.Gio;
+const GLib = imports.gi.GLib;
+const Mainloop = imports.mainloop;
 const Meta = imports.gi.Meta;
-const PanelMenu = imports.ui.panelMenu;
 const Shell = imports.gi.Shell;
+
+const Main = imports.ui.main;
+const PanelMenu = imports.ui.panelMenu;
 
 let extensionPath = "";
 
@@ -75,6 +137,61 @@ Meta.MaximizeFlags.BOTH = Meta.MaximizeFlags.HORIZONTAL | Meta.MaximizeFlags.VER
 
 const _ORDER_DEFAULT = order;
 
+/********************
+ * Helper functions *
+ ********************/
+/* convert Boxes.{LEFT,RIGHT,MIDDLE} into
+ * Main.panel.{_leftBox, _rightBox, _centerBox}
+ */
+function getBox(boxEnum) {
+    let box = null;
+    switch (boxEnum) {
+        case Boxes.MIDDLE:
+            box = Main.panel._centerBox;
+            break;
+        case Boxes.LEFT:
+            box = Main.panel._leftBox;
+            break;
+        case Boxes.RIGHT:
+        default:
+            box = Main.panel._rightBox;
+            break;
+    }
+    return box;
+}
+
+/* Convert position.{left,right}.position to a position that insert_actor can
+ * handle.
+ */
+function getPosition(actor, position) {
+    if (position < 0) {
+        return actor.get_children().length + position + 1;
+    } else { // position 1 ("first item on the left") is index 0
+        return Math.max(0, position - 1);
+    }
+}
+
+/* Cycle to the next or previous box (do not wrap around) */
+function cycleBox(boxEnum, forward) {
+    let nextBox = boxEnum;
+    switch(boxEnum) {
+        case Boxes.LEFT:
+            nextBox = (forward ? Boxes.MIDDLE : Boxes.LEFT);
+            break;
+        case Boxes.MIDDLE:
+            nextBox = (forward ? Boxes.RIGHT : Boxes.LEFT);
+            break;
+        case Boxes.RIGHT:
+            nextBox = (forward ? Boxes.RIGHT : Boxes.MIDDLE);
+            break;
+    }
+    return nextBox;
+}
+
+
+/************************
+ * Window Buttons class *
+ ************************/
 function WindowButtons() {
     this._init();
 }
@@ -83,62 +200,41 @@ WindowButtons.prototype = {
 __proto__: PanelMenu.ButtonBox.prototype,
 
     _init: function () {
-
-        //Create boxes for the buttons
-        this.rightActor = new St.Bin({ style_class: 'box-bin'});
-        this.rightBox = new St.BoxLayout({ style_class: 'button-box' });
-        this.leftActor = new St.Bin({ style_class: 'box-bin'});
-        this.leftBox = new St.BoxLayout({ style_class: 'button-box' });
-
-        //Add boxes to bins
-        this.rightActor.add_actor(this.rightBox);
-        this.leftActor.add_actor(this.leftBox);
-        //Add button to boxes
-        this._display();
-
-        //Load Theme
-        this._loadTheme();
-
-        //Connect to window change events
-        Shell.WindowTracker.get_default().connect('notify::focus-app', Lang.bind(this, this._windowChanged));
-        global.window_manager.connect('switch-workspace', Lang.bind(this, this._windowChanged));
-        global.window_manager.connect('minimize', Lang.bind(this, this._windowChanged));
-        global.window_manager.connect('maximize', Lang.bind(this, this._windowChanged));
-        global.window_manager.connect('unmaximize', Lang.bind(this, this._windowChanged));
-        global.window_manager.connect('map', Lang.bind(this, this._windowChanged));
-        global.window_manager.connect('destroy', Lang.bind(this, this._windowChanged));
-
-        // Show or hide buttons
-        this._windowChanged();
+        this._wmSignals = [];
+        this._windowTrackerSignal = 0;
     },
 
     _loadTheme: function () {
-
-        let oldtheme = theme;
-
-        //dogtk = this._settings.get_boolean(WA_DOGTK);
-
-        if (dogtk) {
-            // Get GTK theme name
-            //theme = new imports.gi.Gio.Settings({schema: "org.gnome.desktop.interface"}).get_string("gtk-theme");
+        if (doMetacity) {
+            // GTK theme name (e.g. Adwaita - we don't have a style for that yet!)
+            // theme = new imports.gi.Gio.Settings({schema: "org.gnome.desktop.interface"}).get_string("gtk-theme");
             // Get Mutter / Metacity theme name
             theme = GConf.Client.get_default().get_string("/apps/metacity/general/theme");
-        }/* else {
-            theme = this._settings.get_string(WA_THEME);
-        }*/
-
-        // Get CSS of new theme, and check it exists, falling back to 'default'
-        let cssPath = extensionPath + '/themes/' + theme + '/style.css';
-        let cssFile = Gio.file_new_for_path(cssPath);
-        if (!cssFile.query_exists(null)) {
-            cssPath = extensionPath + '/themes/default/style.css';
         }
 
-        // Old method, requires restart really
-        St.ThemeContext.get_for_stage(global.stage).get_theme().load_stylesheet(cssPath);
+        // Get CSS of new theme, and check it exists, falling back to 'default'
+        let cssPath = GLib.build_filenamev([extensionPath, 'themes', theme,
+                                            'style.css']);
+        if (!GLib.file_test(cssPath, GLib.FileTest.EXISTS)) {
+            cssPath = GLib.build_filenamev([extensionPath,
+                                            'themes/default/style.css']);
+        }
+
+        let themeContext = St.ThemeContext.get_for_stage(global.stage),
+            currentTheme = themeContext.get_theme();
+
+        // load the new style
+        currentTheme.load_stylesheet(cssPath);
+
+        // The following forces the new style to reload (it may not be the only
+        // way to do it; running the cursor over the buttons works too)
+        this.rightActor.grab_key_focus();
+        this.leftActor.grab_key_focus();
     },
 
     _display: function () {
+        // TODO: if order changes I don't have to destroy all the children,
+        // I can just re-insert them!
 
         let boxes = [ this.leftBox, this.rightBox ];
         for (let box = 0; box < boxes.length; ++box) {
@@ -161,33 +257,52 @@ __proto__: PanelMenu.ButtonBox.prototype,
             order = _ORDER_DEFAULT;
         }
 
+
         let buttonlist = {  minimize : ['Minimize', this._minimize],
                             maximize : ['Maximize', this._maximize],
                             close    : ['Close', this._close] },
-            orders     = order.replace(/ /g, '').split(':'),
-            orderLeft  = orders[0].split(','),
+            orders     = order.replace(/ /g, '').split(':');
+
+        /* Validate order */
+        if (orders.length === 1) {
+            // didn't have a ':'
+            log("Malformed order (no ':'), will insert at the front");
+            orders = ['', orders[0]];
+        }
+
+        let orderLeft  = orders[0].split(','),
             orderRight = orders[1].split(',');
 
         if (orderRight != "") {
             for (let i = 0; i < orderRight.length; ++i) {
+                if (!buttonlist[orderRight[i]]) {
+                    // skip if the butto name is not right...
+                    log('[Window Buttons] warning: \'%s\' is not a valid button'.format(
+                                orderRight[i]));
+                    continue;
+                }
                 let button = new St.Button({ style_class: orderRight[i]  + ' window-button', track_hover: true });
                 button.set_tooltip_text(buttonlist[orderRight[i]][0]);
                 button.connect('button-press-event', Lang.bind(this, buttonlist[orderRight[i]][1]));
-                this.rightBox.add_actor(button);
+                this.rightBox.add(button);
             }
         }
 
         if (orderLeft != "") {
             for (let i = 0; i < orderLeft.length; ++i) {
+                if (!buttonlist[orderLeft[i]]) {
+                    log('[Window Buttons] warning: \'%s\' is not a valid button'.format(
+                                orderLeft[i]));
+                    // skip if the butto name is not right...
+                    continue;
+                }
                 let button = new St.Button({ style_class: orderLeft[i] + ' window-button' });
                 button.set_tooltip_text(buttonlist[orderLeft[i]][0]);
                 button.connect('button-press-event', Lang.bind(this, buttonlist[orderLeft[i]][1]));
                 this.leftBox.add(button);
             }
         }
-
     },
-
 
     _windowChanged: function() {
         if (onlymax && hideonnomax) {
@@ -305,17 +420,66 @@ __proto__: PanelMenu.ButtonBox.prototype,
         }
     },
 
-
     enable: function () {
-        let children = Main.panel._rightBox.get_children();
-        Main.panel._rightBox.add_actor(this.rightActor, children.length);
-        Main.panel._leftBox.add_actor(this.leftActor, 0);
+        //Create boxes for the buttons
+        this.rightActor = new St.Bin({ style_class: 'box-bin'});
+        this.rightBox = new St.BoxLayout({ style_class: 'button-box' });
+        this.leftActor = new St.Bin({ style_class: 'box-bin'});
+        this.leftBox = new St.BoxLayout({ style_class: 'button-box' });
+
+        //Add boxes to bins
+        this.rightActor.add_actor(this.rightBox);
+        this.leftActor.add_actor(this.leftBox);
+        //Add button to boxes
+        this._display();
+
+        //Load Theme
+        this._loadTheme();
+
+        // Connect to window change events
+        this._wmSignals = [];
+        this._windowTrackerSignal = Shell.WindowTracker.get_default().connect(
+                'notify::focus-app', Lang.bind(this, this._windowChanged));
+        this._wmSignals.push(global.window_manager.connect('switch-workspace',
+            Lang.bind(this, this._windowChanged)));
+        this._wmSignals.push(global.window_manager.connect('minimize',
+			Lang.bind(this, this._windowChanged)));
+        this._wmSignals.push(global.window_manager.connect('maximize',
+			Lang.bind(this, this._windowChanged)));
+        this._wmSignals.push(global.window_manager.connect('unmaximize',
+			Lang.bind(this, this._windowChanged)));
+        this._wmSignals.push(global.window_manager.connect('map',
+			Lang.bind(this, this._windowChanged)));
+        this._wmSignals.push(global.window_manager.connect('destroy',
+			Lang.bind(this, this._windowChanged)));
+
+        this._leftContainer = getBox(buttonPosition.left.box);
+        this._rightContainer = getBox(buttonPosition.right.box);
+
+        // A delay is needed to let all the other icons load first.
+        Mainloop.idle_add(Lang.bind(this, function () {
+            this._leftContainer.insert_actor(this.leftActor,
+                    getPosition(this._leftContainer, buttonPosition.left.position));
+            this._rightContainer.insert_actor(this.rightActor,
+                    getPosition(this._rightContainer, buttonPosition.right.position));
+            return false;
+        }));
+
+        // Show or hide buttons
+        this._windowChanged();
     },
 
     disable: function () {
-        Main.panel._rightBox.remove_actor(this.leftActor);
-        Main.panel._rightBox.remove_actor(this.rightActor);
-    }
+        this._leftContainer.remove_actor(this.leftActor);
+        this._rightContainer.remove_actor(this.rightActor);
+
+        /* disconnect all signals */
+        this._settings.disconnectAll();
+        Shell.WindowTracker.get_default().disconnect(this._windowTrackerSignal);
+        for (let i = 0; i < this._wmSignals; ++i) {
+            global.window_manager.disconnect(this._wmSignals.pop());
+        }
+    },
 };
 
 function init(extensionMeta) {

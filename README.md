@@ -33,13 +33,37 @@ You will also have to add `'window_buttons@biox.github.com'` to the `org.gnome.s
 
 You must configure by editing the `extension.js` file.
 
+Themes
+------
+The Window Buttons extension is themeable.
+Themes live in the `themes`. The name of the directory is the name of the theme.
+
+If you want to make your own theme, you have to add a folder into the `themes` directory.
+To start off, copy the `default` theme:
+
+    $ cd window_buttons@biox.github.com/themes
+    $ cp -r default my_new_theme 
+
+Then, edit the `style.css` file to style the window buttons. At a bare minimum,
+ you need to define styles for `.window-button`, `.minimize`, `.maximize` and `.close`.
+
+The `.window-button` style affects each individual button.
+The `.minimize`, `.maximize` and `.close` styles define the styles for each individual button.
+You will have to do something like
+
+    background-img: url("path/to/picture")
+
+for each button, and the picture should have the symbol for the button in it (i.e. we do not draw `_`, `X`, etc on the buttons).
+
+See `themes/default/style.css` for more information.
+
 To-do
 -----
 
-- Check for theme matching metacity theme
 - Add unfocused window support for better theming
 - Add option to handle only maximized windows
 - Add option to hide if there are no maximized windows
+- Modify themes so that we handle drawing the icon and only the background image need be provided?
 - Moar themes!
 
 Version map
@@ -48,4 +72,3 @@ For 'version', see 'version' in metadata.json (this is the version of the extens
 
 - v1: GNOME 3.2-compatible.
 - v2: GNOME 3.4-compatible.
-- 
