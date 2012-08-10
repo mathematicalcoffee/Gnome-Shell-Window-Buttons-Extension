@@ -331,7 +331,7 @@ __proto__: PanelMenu.ButtonBox.prototype,
         }
     },
 
-    _onPositionChange: function (settings, positionKey, boxKey) {
+    _onPositionChange: function (settings, changedKey, positionKey, boxKey) {
         if (this._locked) {
             return;
         }
@@ -424,14 +424,14 @@ __proto__: PanelMenu.ButtonBox.prototype,
         this._settings.connect('changed::' + WA_HIDEONNOMAX, Lang.bind(this, this._windowChanged));
 
         this._settings.connect('changed::' + WA_LEFTPOS, Lang.bind(this, 
-                    this._onPositionChange, WA_LEFTBOX));
+                    this._onPositionChange, WA_LEFTPOS, WA_LEFTBOX));
         this._settings.connect('changed::' + WA_RIGHTPOS, Lang.bind(this, 
-                    this._onPositionChange, WA_RIGHTBOX));
+                    this._onPositionChange, WA_RIGHTPOS, WA_RIGHTBOX));
 
         this._settings.connect('changed::' + WA_LEFTBOX, Lang.bind(this,
-                    this._onPositionChange, WA_LEFTBOX));
+                    this._onPositionChange, WA_LEFTPOS, WA_LEFTBOX));
         this._settings.connect('changed::' + WA_RIGHTBOX, Lang.bind(this,
-                    this._onPositionChange, WA_RIGHTBOX));
+                    this._onPositionChange, WA_RIGHTPOS, WA_RIGHTBOX));
 
         // Connect to window change events
         this._wmSignals = [];
