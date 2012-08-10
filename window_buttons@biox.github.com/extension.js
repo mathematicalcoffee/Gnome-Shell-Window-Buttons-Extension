@@ -1,3 +1,4 @@
+/*global log, global */ // <-- for jshint
 // Copyright (C) 2011 Josiah Messiah (josiah.messiah@gmail.com)
 // Other contributors:
 // Maintainer: mathematicalcoffee <mathematical.coffee@gmail.com>
@@ -42,9 +43,14 @@ const PinchType = Prefs.PinchType;
 const Boxes = Prefs.Boxes;
 
 // Laziness
-Meta.MaximizeFlags.BOTH = Meta.MaximizeFlags.HORIZONTAL | Meta.MaximizeFlags.VERTICAL;
+Meta.MaximizeFlags.BOTH = (Meta.MaximizeFlags.HORIZONTAL |
+    Meta.MaximizeFlags.VERTICAL);
 
 const _ORDER_DEFAULT = ":minimize,maximize,close";
+
+function warn(msg) {
+    log("WARNING [Window Buttons]: " + msg);
+}
 
 /* convert Boxes.{LEFT,RIGHT,MIDDLE} into
  * Main.panel.{_leftBox, _rightBox, _centerBox}
@@ -52,28 +58,66 @@ const _ORDER_DEFAULT = ":minimize,maximize,close";
 function getBox(boxEnum) {
     let box = null;
     switch (boxEnum) {
-        case Boxes.MIDDLE:
-            box = Main.panel._centerBox;
-            break;
-        case Boxes.LEFT:
-            box = Main.panel._leftBox;
-            break;
-        case Boxes.RIGHT:
-            /* falls through */
-        default:
-            box = Main.panel._rightBox;
-            break;
+    case Boxes.MIDDLE:
+        box = Main.panel._centerBox;
+        break;
+    case Boxes.LEFT:
+        box = Main.panel._leftBox;
+        break;
+    case Boxes.RIGHT:
+        /* falls through */
+    default:
+        box = Main.panel._rightBox;
+        break;
     }
     return box;
 }
 
+/* Get the number of *visible* children in an actor. */
+function getNChildren(act) {
+    return act.get_children().filter(function (c) { return c.visible; }).length;
+}
+
 /* Convert position.{left,right}.position to a position that insert_actor can
  * handle.
+ * Here 'position' is the position you want  amongst all
+ * *visible* children of actor.
+ * (e.g. for me on GNOME 3.4 the bluetooth indicator is a child of
+ * Main.panel._leftBox, but isn't visible because I don't have bluetooth.
  */
-function getPosition(actor, position) {
+function getPosition(actor, position, nvisible) {
     if (position < 0) {
-        return actor.get_children().length + position + 1;
+        let n = actor.get_children().length;
+        if (nvisible !== n && nvisible > 0) {
+            // you want to get the `position`th item amongst the *visible*
+            // children, but you have to call insert_actor on an index amongst
+            // *all* children of actor.
+            let pos = 0,
+                nvis = 0,
+                children = actor.get_children();
+            for (let i = n - 1; i >= 0 && nvis < -position; --i) {
+                pos -= 1;
+                if (children[i].visible) {
+                    nvis++;
+                }
+            }
+            position = pos;
+        }
+        return n + position + 1;
     } else { // position 1 ("first item on the left") is index 0
+        let n = actor.get_children().length;
+        if (nvisible !== n && nvisible > 0) {
+            let nvis = 0,
+                pos = 0,
+                children = actor.get_children();
+            for (let i = 0; i < n && nvis < position; ++i) {
+                pos += 1;
+                if (children[i].visible) {
+                    nvis++;
+                }
+            }
+            position = pos;
+        }
         return Math.max(0, position - 1);
     }
 }
@@ -101,10 +145,14 @@ WindowButtons.prototype = {
             doMetacity = this._settings.get_boolean(WA_DO_METACITY);
 
         if (doMetacity) {
-            // GTK theme name (e.g. Adwaita - we don't have a style for that yet!)
-            // theme = new imports.gi.Gio.Settings({schema: "org.gnome.desktop.interface"}).get_string("gtk-theme");
+            // GTK theme name (e.g. Adwaita - we don't have a style for that
+            // yet!)
+            // theme = new imports.gi.Gio.Settings({
+            //     schema: "org.gnome.desktop.interface"
+            // }).get_string("gtk-theme");
             // Get Mutter / Metacity theme name
-            theme = GConf.Client.get_default().get_string("/apps/metacity/general/theme");
+            theme = GConf.Client.get_default().get_string(
+                    "/apps/metacity/general/theme");
         } else {
             theme = this._settings.get_string(WA_THEME);
         }
@@ -154,13 +202,18 @@ WindowButtons.prototype = {
         let order = _ORDER_DEFAULT;
 
         if (pinch === PinchType.MUTTER) {
-            order = GConf.Client.get_default().get_string("/desktop/gnome/shell/windows/button_layout");
+            order = GConf.Client.get_default().get_string(
+                    "/desktop/gnome/shell/windows/button_layout");
         } else if (pinch === PinchType.METACITY) {
-            order = GConf.Client.get_default().get_string("/apps/metacity/general/button_layout");
+            order = GConf.Client.get_default().get_string(
+                    "/apps/metacity/general/button_layout");
         } else if (pinch === PinchType.GNOME_SHELL) {
-            order = new Gio.Settings({ schema: 'org.gnome.shell.overrides' }).get_string('button-layout');
+            order = new Gio.Settings({
+                schema: 'org.gnome.shell.overrides'
+            }).get_string('button-layout');
         }
-        /* if order is null because keys don't exist, get them from settings (PinchType.CUSTOM) */
+        /* if order is null because keys don't exist, get them from settings
+         * (PinchType.CUSTOM) */
         if (pinch === PinchType.CUSTOM || !order || !order.length) {
             order = this._settings.get_string(WA_ORDER);
         }
@@ -178,7 +231,7 @@ WindowButtons.prototype = {
         /* Validate order */
         if (orders.length === 1) {
             // didn't have a ':'
-            log("Malformed order (no ':'), will insert at the front");
+            warn("Malformed order (no ':'), will insert at the front.");
             orders = ['', orders[0]];
         }
 
@@ -189,13 +242,17 @@ WindowButtons.prototype = {
             for (let i = 0; i < orderRight.length; ++i) {
                 if (!buttonlist[orderRight[i]]) {
                     // skip if the butto name is not right...
-                    log('[Window Buttons] warning: \'%s\' is not a valid button'.format(
+                    warn("\'%s\' is not a valid button.".format(
                                 orderRight[i]));
                     continue;
                 }
-                let button = new St.Button({ style_class: orderRight[i]  + ' window-button', track_hover: true });
+                let button = new St.Button({
+                    style_class: orderRight[i]  + ' window-button',
+                    track_hover: true
+                });
                 //button.set_tooltip_text(buttonlist[orderRight[i]][0]);
-                button.connect('button-press-event', Lang.bind(this, buttonlist[orderRight[i]][1]));
+                button.connect('button-press-event', Lang.bind(this,
+                            buttonlist[orderRight[i]][1]));
                 this.rightBox.add(button);
             }
         }
@@ -203,14 +260,18 @@ WindowButtons.prototype = {
         if (orderLeft != "") {
             for (let i = 0; i < orderLeft.length; ++i) {
                 if (!buttonlist[orderLeft[i]]) {
-                    log('[Window Buttons] warning: \'%s\' is not a valid button'.format(
+                    warn("\'%s\' is not a valid button.".format(
                                 orderLeft[i]));
                     // skip if the butto name is not right...
                     continue;
                 }
-                let button = new St.Button({ style_class: orderLeft[i] + ' window-button' });
+                let button = new St.Button({
+                    style_class: orderLeft[i] + ' window-button',
+                    track_hover: true
+                });
                 //button.set_tooltip_text(buttonlist[orderLeft[i]][0]);
-                button.connect('button-press-event', Lang.bind(this, buttonlist[orderLeft[i]][1]));
+                button.connect('button-press-event', Lang.bind(this,
+                            buttonlist[orderLeft[i]][1]));
                 this.leftBox.add(button);
             }
         }
@@ -231,7 +292,8 @@ WindowButtons.prototype = {
         }
     },
 
-    // Return the uppermost maximized window from the current workspace, or fasle is there is none
+    // Return the uppermost maximized window from the current workspace, or
+    // false is there is none
     _upperMax: function () {
         let workspace = global.screen.get_active_workspace();
         let windows = workspace.list_windows();
@@ -258,7 +320,8 @@ WindowButtons.prototype = {
             if (activeWindow.get_maximized()) {
                 activeWindow.minimize();
             // If the active window is not maximized, minimize the uppermost
-            // maximized window if the option to only control maximized windows is set
+            // maximized window if the option to only control maximized windows
+            // is set
             } else if (onlymax) {
                 let uppermax = this._upperMax();
                 if (uppermax) {
@@ -278,7 +341,6 @@ WindowButtons.prototype = {
     _maximize: function () {
         let activeWindow = global.display.focus_window,
             onlymax = this._settings.get_boolean(WA_ONLYMAX);
-        // window.maximize() did not exist when I started writing this extension!!?!
         if (activeWindow === null || activeWindow.get_title() === "Desktop") {
             // No windows are active, maximize the uppermost window
             let winactors = global.get_window_actors();
@@ -291,7 +353,8 @@ WindowButtons.prototype = {
             if (activeWindow.get_maximized()) {
                 activeWindow.unmaximize(Meta.MaximizeFlags.BOTH);
             // If the active window is not maximized, unmaximize the uppermost
-            // maximized window if the option to only control maximized windows is set
+            // maximized window if the option to only control maximized windows
+            // is set
             } else if (onlymax) {
                 let uppermax = this._upperMax();
                 if (uppermax) {
@@ -320,7 +383,8 @@ WindowButtons.prototype = {
             if (activeWindow.get_maximized()) {
                 activeWindow.delete(global.get_current_time());
             // If the active window is not maximized, close the uppermost
-            // maximized window if the option to only control maximized windows is set
+            // maximized window if the option to only control maximized windows
+            // is set
             } else if (onlymax) {
                 let uppermax = this._upperMax();
                 if (uppermax) {
@@ -345,7 +409,7 @@ WindowButtons.prototype = {
             newPos = pos,
             box = this._settings.get_enum(boxKey),
             newBox = box,
-            n = getBox(box).get_children().length;
+            n = getNChildren(getBox(box));
 
         // if pos is 0, we are waiting on a box change and then another
         // position change with the proper non-zero position (this is since
@@ -356,8 +420,11 @@ WindowButtons.prototype = {
         }
 
         this._locked = true;
-        log('calculating position change');
-        if (pos < -n) { // moving left through to the next box
+        if (n === 0) {
+            // if there are no children set this
+            // as the first.
+            pos = 1;
+        } else if (pos < -n) { // moving left through to the next box
             // we have to process a change in the box
             newBox = Prefs.cycleBox(box, false);
             newPos = -1;
@@ -368,13 +435,12 @@ WindowButtons.prototype = {
         // When we pass the half-way mark, switch from anchoring left to
         // anchoring right (or vice versa moving backwards).
         } else if (pos > 0 && pos > (n + 1) / 2) {
-            // BIG TODO: these are not working somehow.
             newPos = pos - n - 1;
         } else if (pos < 0 && -pos > (n + 1) / 2)  {
             newPos = n + pos + 1;
         } else if (pos === 0) {
             // should have been taken care of
-            log('!!! [Window Buttons] !!! pos === 0, this shouldn\'t happen');
+            warn("!!! [Window Buttons] !!! pos === 0, this shouldn\'t happen");
             // will just guess pos = 1 ... (move to LHS of the current box)
             newPos = 1;
         }
@@ -394,15 +460,14 @@ WindowButtons.prototype = {
                 this.rightActor);
         box = getBox(newBox);
         this[container].remove_actor(actor);
-        this._leftContainer.remove_actor(this.leftActor);
         if (this[container] !== box) {
             this[container] = box;
         }
         // TODO: has nchildren updated by now? should we do getPosition
         // ourselves?
-        this[container].insert_child_at_index(actor, getPosition(this[container], newPos));
+        newPos = getPosition(this[container], newPos, n);
+        this[container].insert_child_at_index(actor, newPos);
 
-        log('final: box ' + newBox + ', position ' + newPos);
         this._locked = false;
     },
 
@@ -423,15 +488,20 @@ WindowButtons.prototype = {
         this._loadTheme();
 
         //Connect to setting change events
-        this._settings.connect('changed::' + WA_DO_METACITY, Lang.bind(this, this._loadTheme));
-        this._settings.connect('changed::' + WA_THEME, Lang.bind(this, this._loadTheme));
-        this._settings.connect('changed::' + WA_ORDER, Lang.bind(this, this._display));
-        this._settings.connect('changed::' + WA_PINCH, Lang.bind(this, this._display));
-        this._settings.connect('changed::' + WA_HIDEONNOMAX, Lang.bind(this, this._windowChanged));
+        this._settings.connect('changed::' + WA_DO_METACITY,
+                Lang.bind(this, this._loadTheme));
+        this._settings.connect('changed::' + WA_THEME,
+                Lang.bind(this, this._loadTheme));
+        this._settings.connect('changed::' + WA_ORDER,
+                Lang.bind(this, this._display));
+        this._settings.connect('changed::' + WA_PINCH,
+                Lang.bind(this, this._display));
+        this._settings.connect('changed::' + WA_HIDEONNOMAX,
+                Lang.bind(this, this._windowChanged));
 
-        this._settings.connect('changed::' + WA_LEFTPOS, Lang.bind(this, 
+        this._settings.connect('changed::' + WA_LEFTPOS, Lang.bind(this,
                     this._onPositionChange, WA_LEFTPOS, WA_LEFTBOX));
-        this._settings.connect('changed::' + WA_RIGHTPOS, Lang.bind(this, 
+        this._settings.connect('changed::' + WA_RIGHTPOS, Lang.bind(this,
                     this._onPositionChange, WA_RIGHTPOS, WA_RIGHTBOX));
 
         this._settings.connect('changed::' + WA_LEFTBOX, Lang.bind(this,
@@ -467,9 +537,11 @@ WindowButtons.prototype = {
         // A delay is needed to let all the other icons load first.
         Mainloop.idle_add(Lang.bind(this, function () {
             this._leftContainer.insert_child_at_index(this.leftActor,
-                    getPosition(this._leftContainer, leftpos));
+                    getPosition(this._leftContainer, leftpos,
+                        getNChildren(this._leftContainer)));
             this._rightContainer.insert_child_at_index(this.rightActor,
-                    getPosition(this._rightContainer, rightpos));
+                    getPosition(this._rightContainer,
+                        rightpos, getNChildren(this._rightContainer)));
             return false;
         }));
 

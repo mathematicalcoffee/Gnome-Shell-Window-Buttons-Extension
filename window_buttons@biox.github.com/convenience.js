@@ -1,3 +1,4 @@
+/*global log, global */ // <-- for jshint
 /** Credit:
  *  taken from the gnome shell extensions repository at
  *  git.gnome.org/browse/gnome-shell-extensions
@@ -62,8 +63,8 @@ function getSettings(schema) {
 
     let schemaObj = schemaSource.lookup(schema, true);
     if (!schemaObj)
-        throw new Error('Schema ' + schema + ' could not be found for extension '
-                        + extension.metadata.uuid + '. Please check your installation.');
+        throw new Error('Schema ' + schema + ' could not be found for extension ' +
+                        extension.metadata.uuid + '. Please check your installation.');
 
     return new Gio.Settings({ settings_schema: schemaObj });
 }

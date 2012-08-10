@@ -1,3 +1,4 @@
+/*global log, global */ // <-- for jshint
 /** Credit:
  *  based off prefs.js from the gnome shell extensions repository at
  *  git.gnome.org/browse/gnome-shell-extensions
@@ -47,16 +48,16 @@ const Boxes = {
 /* **** HELPER FUNCTIONS *** */
 function cycleBox(boxEnum, forward) {
     let nextBox = boxEnum;
-    switch(boxEnum) {
-        case Boxes.LEFT:
-            nextBox = (forward ? Boxes.MIDDLE : Boxes.LEFT);
-            break;
-        case Boxes.MIDDLE:
-            nextBox = (forward ? Boxes.RIGHT : Boxes.LEFT);
-            break;
-        case Boxes.RIGHT:
-            nextBox = (forward ? Boxes.RIGHT : Boxes.MIDDLE);
-            break;
+    switch (boxEnum) {
+    case Boxes.LEFT:
+        nextBox = (forward ? Boxes.MIDDLE : Boxes.LEFT);
+        break;
+    case Boxes.MIDDLE:
+        nextBox = (forward ? Boxes.RIGHT : Boxes.LEFT);
+        break;
+    case Boxes.RIGHT:
+        nextBox = (forward ? Boxes.RIGHT : Boxes.MIDDLE);
+        break;
     }
     return nextBox;
 }
@@ -71,7 +72,7 @@ const WindowButtonsPrefsWidget = new GObject.Class({
     GTypeName: 'WindowButtonsPrefsWidget',
     Extends: Gtk.Grid,
 
-    _init: function(params) {
+    _init: function (params) {
         this.parent(params);
         this.margin = this.row_spacing = this.column_spacing = 10;
         this._rownum = 0;
@@ -98,9 +99,10 @@ const WindowButtonsPrefsWidget = new GObject.Class({
         }
         fileEnum.close(null);
 
-        item.connect('changed', Lang.bind(this, function(combo) {
+        item.connect('changed', Lang.bind(this, function (combo) {
             let value = combo.get_active_id();
-            if (value !== undefined && this._settings.get_string(WA_THEME) !== value) {
+            if (value !== undefined &&
+                this._settings.get_string(WA_THEME) !== value) {
                 this._settings.set_string(WA_THEME, value);
             }
         }));
@@ -118,7 +120,8 @@ const WindowButtonsPrefsWidget = new GObject.Class({
         this._themeCombo.set_sensitive(!this._doMetacity.active);
 
         // order
-        this._order = this.addEntry("Button order:\n(allowed: {'minimize', 'maximize', 'close', ':'})", WA_ORDER);
+        this._order = this.addEntry("Button order:\n(allowed: {'minimize', " +
+                "'maximize', 'close', ':'})", WA_ORDER);
         /* insert controls for moving buttons */
         this._positionLeft = this._makeLeftRightButtons(
                 "Position the left set of buttons", WA_LEFTBOX, WA_LEFTPOS);
@@ -126,13 +129,13 @@ const WindowButtonsPrefsWidget = new GObject.Class({
                 "Position the right set of buttons", WA_RIGHTBOX, WA_RIGHTPOS);
         // disable if no left or right set of buttons to move.
         let lr = this._order.text.split(':');
-        if (len(lr) !== 1) {
+        if (lr.length !== 1) {
             this._positionLeft.set_sensitive(lr[0].length);
             this._positionRight.set_sensitive(lr[1].length);
         }
 
         this._order.connect('notify::text', Lang.bind(this, function () {
-            if (len(lr) !== 1) {
+            if (lr.length !== 1) {
                 this._positionLeft.set_sensitive(lr[0].length);
                 this._positionRight.set_sensitive(lr[1].length);
             }
@@ -142,27 +145,29 @@ const WindowButtonsPrefsWidget = new GObject.Class({
         item = new Gtk.ComboBoxText();
         for (let type in PinchType) {
             if (PinchType.hasOwnProperty(type)) {
-                let label = type[0].toUpperCase() + type.substring(1).toLowerCase();
+                let label = type[0].toUpperCase() +
+                    type.substring(1).toLowerCase();
                 label = label.replace(/_/g, '-');
                 item.insert(-1, PinchType[type].toString(), label);
             }
         }
         item.set_active_id(this._settings.get_enum(WA_PINCH).toString());
-        item.connect('changed', Lang.bind(this, function(combo) {
+        item.connect('changed', Lang.bind(this, function (combo) {
             let value = parseInt(combo.get_active_id(), 10);
-            if (value !== undefined && this._settings.get_enum(WA_PINCH) !== value) {
+            if (value !== undefined &&
+                this._settings.get_enum(WA_PINCH) !== value) {
                 this._settings.set_enum(WA_PINCH, value);
             }
         }));
         this.addRow("Which button order to use:", item);
 
-        // NOTE: these are not used anywhere (yet), although they are in the schema.
         // onlymax
         this._onlymax = this.addBoolean("Control only maximized windows",
             WA_ONLYMAX);
 
         // hideonnomax
-        this._hideonmax = this.addBoolean("Hide if there are no maximized windows",
+        this._hideonmax = this.addBoolean(
+            "Hide if there are no maximized windows",
             WA_HIDEONNOMAX);
         // enable with onlymax
         this._onlymax.connect('notify::active', Lang.bind(this, function () {
@@ -173,7 +178,7 @@ const WindowButtonsPrefsWidget = new GObject.Class({
     },
 
     /* insert controls for moving buttons */
-    _makeLeftRightButtons: function(label, boxKey, positionKey) {
+    _makeLeftRightButtons: function (label, boxKey, positionKey) {
         // EXAMPLES:
         // Put as the right-most item in the status bar:
         //     box: Boxes.RIGHT,
@@ -247,7 +252,7 @@ const WindowButtonsPrefsWidget = new GObject.Class({
         return this.addRow(text, item);
     },
 
-    addSpin: function(label, key, adjustmentProperties, spinProperties) {
+    addSpin: function (label, key, adjustmentProperties, spinProperties) {
         adjustmentProperties = Params.parse(adjustmentProperties,
             { lower: 0, upper: 100, step_increment: 100 });
         let adjustment = new Gtk.Adjustment(adjustmentProperties);
@@ -266,7 +271,7 @@ const WindowButtonsPrefsWidget = new GObject.Class({
         }));
         return this.addRow(label, spinButton, true);
     },
-    
+
     addRow: function (text, widget, wrap) {
         let label = new Gtk.Label({
             label: text,
