@@ -1,4 +1,9 @@
 // Copyright (C) 2011 Josiah Messiah (josiah.messiah@gmail.com)
+// Other contributors:
+// Maintainer: mathematicalcoffee <mathematical.coffee@gmail.com>
+// Patches contributed by:
+// - barravi (GNOME 3.4 compatibility)
+// - tiper (GNOME 3.4 compatibility)
 // Licence: GPLv3
 
 const Lang = imports.lang;
@@ -54,6 +59,7 @@ function getBox(boxEnum) {
             box = Main.panel._leftBox;
             break;
         case Boxes.RIGHT:
+            /* falls through */
         default:
             box = Main.panel._rightBox;
             break;
@@ -77,7 +83,7 @@ function WindowButtons() {
 }
 
 WindowButtons.prototype = {
-__proto__: PanelMenu.ButtonBox.prototype,
+    __proto__: PanelMenu.ButtonBox.prototype,
 
     _init: function () {
         //Load Settings
@@ -481,7 +487,7 @@ __proto__: PanelMenu.ButtonBox.prototype,
         for (let i = 0; i < this._wmSignals; ++i) {
             global.window_manager.disconnect(this._wmSignals.pop());
         }
-    },
+    }
 };
 
 function init(extensionMeta) {

@@ -19,19 +19,19 @@
     <key type="s" name="order">
       <default>":minimize,maximize,close"</default>
       <summary>Button Order</summary>
-      <description>The order of the window buttons (e.g. :minimize,maximize,close). Colon represents the shit in the middle.</description>
+      <description>The order of the window buttons (e.g. :minimize,maximize,close). Colon splits the buttons into two groups that you can position separately.</description>
     </key>
 
     <key type="s" name="theme">
       <default>"default"</default>
       <summary>Theme</summary>
-      <description>The name of the theme to use</description>
+      <description>The name of the theme to use (must be one of the folders in [extensionPath]/themes).</description>
     </key>
     
     <key name="pinch" enum="org.gnome.shell.extensions.window-buttons.PinchType">
       <default>'Mutter'</default>
       <summary>Use custom/mutter/metacity order</summary>
-      <description>Use custom button order or the order pinch settings from mutter/metacity</description>
+      <description>Use custom button order or the pinch order settings from mutter/metacity</description>
     </key>
     
     <key type="b" name="do-metacity">

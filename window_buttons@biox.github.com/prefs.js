@@ -101,7 +101,7 @@ const WindowButtonsPrefsWidget = new GObject.Class({
         item.connect('changed', Lang.bind(this, function(combo) {
             let value = combo.get_active_id();
             if (value !== undefined && this._settings.get_string(WA_THEME) !== value) {
-                this._settings.set_string(WA_THEME, value)
+                this._settings.set_string(WA_THEME, value);
             }
         }));
         item.set_active_id(this._settings.get_string(WA_THEME) || 'default');
@@ -125,22 +125,21 @@ const WindowButtonsPrefsWidget = new GObject.Class({
         this._positionRight = this._makeLeftRightButtons(
                 "Position the right set of buttons", WA_RIGHTBOX, WA_RIGHTPOS);
         // disable if no left or right set of buttons to move.
-        let [l,r] = this._order.text.split(':');
-        if (r !== undefined) {
-            this._positionLeft.set_sensitive(l.length);
-            this._positionRight.set_sensitive(r.length);
+        let lr = this._order.text.split(':');
+        if (len(lr) !== 1) {
+            this._positionLeft.set_sensitive(lr[0].length);
+            this._positionRight.set_sensitive(lr[1].length);
         }
 
         this._order.connect('notify::text', Lang.bind(this, function () {
-            let [l,r] = this._order.text.split(':');
-            if (r !== undefined) {
-                this._positionLeft.set_sensitive(l.length);
-                this._positionRight.set_sensitive(r.length);
+            if (len(lr) !== 1) {
+                this._positionLeft.set_sensitive(lr[0].length);
+                this._positionRight.set_sensitive(lr[1].length);
             }
         }));
 
         // pinch
-        let item = new Gtk.ComboBoxText();
+        item = new Gtk.ComboBoxText();
         for (let type in PinchType) {
             if (PinchType.hasOwnProperty(type)) {
                 let label = type[0].toUpperCase() + type.substring(1).toLowerCase();
@@ -150,9 +149,9 @@ const WindowButtonsPrefsWidget = new GObject.Class({
         }
         item.set_active_id(this._settings.get_enum(WA_PINCH).toString());
         item.connect('changed', Lang.bind(this, function(combo) {
-            let value = parseInt(combo.get_active_id());
+            let value = parseInt(combo.get_active_id(), 10);
             if (value !== undefined && this._settings.get_enum(WA_PINCH) !== value) {
-                this._settings.set_enum(WA_PINCH, value)
+                this._settings.set_enum(WA_PINCH, value);
             }
         }));
         this.addRow("Which button order to use:", item);
@@ -285,7 +284,7 @@ const WindowButtonsPrefsWidget = new GObject.Class({
         this.attach(widget, col || 0, this._rownum, colspan || 2, rowspan || 1);
         this._rownum++;
         return widget;
-    },
+    }
 });
 
 function buildPrefsWidget() {
