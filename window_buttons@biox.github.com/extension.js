@@ -153,6 +153,7 @@ function getBox(boxEnum) {
             box = Main.panel._leftBox;
             break;
         case Boxes.RIGHT:
+            /* falls through */
         default:
             box = Main.panel._rightBox;
             break;
@@ -197,7 +198,7 @@ function WindowButtons() {
 }
 
 WindowButtons.prototype = {
-__proto__: PanelMenu.ButtonBox.prototype,
+    __proto__: PanelMenu.ButtonBox.prototype,
 
     _init: function () {
         this._wmSignals = [];
@@ -479,7 +480,7 @@ __proto__: PanelMenu.ButtonBox.prototype,
         for (let i = 0; i < this._wmSignals; ++i) {
             global.window_manager.disconnect(this._wmSignals.pop());
         }
-    },
+    }
 };
 
 function init(extensionMeta) {
