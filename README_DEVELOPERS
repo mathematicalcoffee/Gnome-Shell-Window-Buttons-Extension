@@ -8,7 +8,7 @@ The gnome3.2 and gnome3.4 branches are where the code for these respective versi
 The master branch is sort of in limbo at the moment (don't know what to do with it).
 For now it mirrors upstream/master which is a GNOME 3.4 version of the extension.
 
-If you make any changes to metadata files for the extension that you want to port to both other branches, do it in the master branch. For example: metadata.json, README.md, Makefile. Then merge these changes fro master to gnome3.2 and gnome3.4 (??)
+If you make any changes to metadata files for the extension that you want to port to both other branches, do it in the master branch. For example: metadata.json, README.md, Makefile. Then merge these changes from master to gnome3.2 and gnome3.4.
 
 
 TODO
