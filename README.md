@@ -1,13 +1,11 @@
 Window Buttons Extension
 ================================
-
 This is an extension for Gnome 3 which puts minimize, maximize and close buttons in the top panel.
-
 Supports custom button layouts and css theming!
 
 <table>
   <tr>
-    <td>![Screenshot](https://github.com/biox/Gnome-Shell-Window-Buttons-Extension/blob/master/screenshot.png)</td>
+    <td>![Screenshot](https://github.com/mathematicalcoffee/Gnome-Shell-Window-Buttons-Extension/blob/master/screenshot.png)</td>
   </tr>
   <tr>
     <td>Current (14/Aug/2012) themes, top-to-bottom: default, Ambiance, Radiance, Zukwito, Zukwito-Dark</td>
@@ -15,6 +13,12 @@ Supports custom button layouts and css theming!
 </table>
 
 Configure with `gnome-shell-extension-prefs` (GNOME 3.4) or by editing `extension.js` (GNOME 3.2).
+
+
+Author: biox (Josiah Messiah)   
+Maintainer: mathematical.coffee <mathematical.coffee@gmail.com>
+
+Note - the [mathematicalcoffee fork](https://github.com/mathematicalcoffee/Gnome-Shell-Window-Buttons-Extension) of this extension is where development happens, and it all then gets pushed to the original [biox repository](https://github.com/biox/Gnome-Shell-Window-Buttons-Extension).
 
 Installation
 ------------
@@ -47,7 +51,6 @@ For GNOME 3.2 folk trying to edit `extension.js`, there is a bit more explanatio
 
 ### Button order
 This is the order of the buttons, for example minimize then maximize then close, or close then maximize then minimize.
-
 There are two settings that affect this: `order` and `pinch`.
 
 The `pinch` setting is whether you want to pinch the order of the buttons from Metacity or Gnome shell:
