@@ -1,11 +1,18 @@
-Gnome 3 Window Buttons Extension
+Window Buttons Extension
 ================================
 
 This is an extension for Gnome 3 which puts minimize, maximize and close buttons in the top panel.
 
 Supports custom button layouts and css theming!
 
-Currently the buttons only control the active window.
+<table>
+  <tr>
+    <td>![Screenshot](https://github.com/biox/Gnome-Shell-Window-Buttons-Extension/blob/master/screenshot.png)</td>
+  </tr>
+  <tr>
+    <td>Current (14/Aug/2012) themes, top-to-bottom: default, Ambiance, Radiance, Zukwito, Zukwito-Dark</td>
+  </tr>
+</table>
 
 Configure with `gnome-shell-extension-prefs` (GNOME 3.4) or by editing `extension.js` (GNOME 3.2).
 
@@ -131,8 +138,8 @@ To start off, copy the `default` theme:
     $ cd window_buttons@biox.github.com/themes
     $ cp -r default my_new_theme 
 
-Then, edit the `style.css` file to style the window buttons. At a bare minimum,
- you need to define styles for `.window-button`, `.minimize`, `.maximize` and `.close`.
+Then, edit the `style.css` file to style the window buttons. 
+At a bare minimum, you need to define styles for `.window-button`, `.minimize`, `.maximize` and `.close`.
 
 The `.window-button` style affects each individual button.
 The `.minimize`, `.maximize` and `.close` styles define the styles for each individual button.
