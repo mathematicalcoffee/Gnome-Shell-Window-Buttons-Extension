@@ -1,0 +1,185 @@
+<h1>Window Buttons Extension</h1>
+
+<p>This is an extension for Gnome 3 which puts minimize, maximize and close buttons in the top panel.
+Supports custom button layouts and css theming!</p>
+
+<table>
+  <tr>
+    <img src="https://github.com/mathematicalcoffee/Gnome-Shell-Window-Buttons-Extension/raw/master/screenshot.png" alt="Screenshot" />
+  </tr>
+  <tr>
+    <td>Current (14/Aug/2012) themes, top-to-bottom: default, Ambiance, Radiance, Zukwito, Zukwito-Dark</td>
+  </tr>
+</table>
+
+<p>Configure with <code>gnome-shell-extension-prefs</code> (GNOME 3.4) or by editing <code>extension.js</code> (GNOME 3.2).</p>
+
+<p>Author: biox (Josiah Messiah) <br />
+Maintainer: mathematical.coffee <a href="&#x6D;&#x61;&#x69;&#x6C;&#x74;&#111;:&#109;&#x61;&#116;&#x68;&#x65;&#x6D;&#97;&#116;&#105;&#99;&#x61;&#108;&#46;&#99;&#x6F;&#x66;&#102;&#101;&#101;&#64;&#x67;&#x6D;a&#x69;&#x6C;&#x2E;&#99;&#x6F;m">&#109;&#x61;&#116;&#x68;&#x65;&#x6D;&#97;&#116;&#105;&#99;&#x61;&#108;&#46;&#99;&#x6F;&#x66;&#102;&#101;&#101;&#64;&#x67;&#x6D;a&#x69;&#x6C;&#x2E;&#99;&#x6F;m</a></p>
+
+<p>Note - the <a href="https://github.com/mathematicalcoffee/Gnome-Shell-Window-Buttons-Extension">mathematicalcoffee fork</a> of this extension is where development happens, and it all then gets pushed to the original <a href="https://github.com/biox/Gnome-Shell-Window-Buttons-Extension">biox repository</a>.</p>
+
+<h2>Installation</h2>
+
+<p>(NEW: hopefully, you can install from extensions.gnome.org).</p>
+
+<h3>GNOME 3.4</h3>
+
+<p>Either download the .zip file from the <a href="https://github.com/biox/Gnome-Shell-Window-Buttons-Extension/downloads">Downloads page</a> or checkout the code to the <code>gnome3.4</code> branch.</p>
+
+<p>If you have the .zip file, go to Gnome tweak tools --> Shell Extensions --> Install from zip file --> choose the zip file.</p>
+
+<p>If you have the source code, copy the folder to the appropriate place:</p>
+
+<pre><code>$ cp window_buttons@biox.github.com ~/.local/share/gnome-shell/extensions/
+</code></pre>
+
+<p>Configure using <code>gnome-shell-extension-prefs</code>. No shell restarts required.</p>
+
+<h3>GNOME 3.2</h3>
+
+<p>As above (but if you are checking out the code, use the <code>gnome3.2</code> branch).</p>
+
+<p>You will also have to add <code>'window_buttons@biox.github.com'</code> to the <code>org.gnome.shell enabled-extensions</code> key.</p>
+
+<p><strong>NOTE</strong>: previous versions of this extension allowed you to copy a settings file to <code>/usr/share</code> to configure the extension with <code>dconf-editor</code>; this has been discontinued because the extension won't pass review on https://extensions.gnome.org if it asks you to do anything requiring root access like that.</p>
+
+<p>You must configure by editing the <code>extension.js</code> file. You have to gnome-shell after making changes to <code>extension.js</code>.</p>
+
+<h2>Configuration</h2>
+
+<p>The following is an explanation of the configuration options available.
+For GNOME 3.2 folk trying to edit <code>extension.js</code>, there is a bit more explanation in that file.</p>
+
+<h3>Button order</h3>
+
+<p>This is the order of the buttons, for example minimize then maximize then close, or close then maximize then minimize.
+There are two settings that affect this: <code>order</code> and <code>pinch</code>.</p>
+
+<p>The <code>pinch</code> setting is whether you want to pinch the order of the buttons from Metacity or Gnome shell:</p>
+
+<ul>
+<li><code>PinchType.METACITY</code> means the order will be taken from the key <code>/apps/metacity/general/button_layout</code>,</li>
+<li><code>PinchType.GNOME_SHELL</code> takes the order from <code>/org/gnome/shell/overrides/button-layout</code>,</li>
+<li><code>PinchType.CUSTOM</code> means you'll specify the order yourself.</li>
+</ul>
+
+<p>If you choose <code>PinchType.CUSTOM</code>, then you have to specify <code>order</code>.</p>
+
+<p><code>order</code> is a string (default <code>':minimize, maximize, close'</code>) specifying button order.
+The available buttons are 'minimize', 'maximize', and 'close', separated by a comma.</p>
+
+<p>The colon <code>:</code> splits the buttons into two groups: left and right.
+These can be positioned separately. For example, <code>minimize:maximize, close</code> will allow you to position the 'minimize' button separately to the 'maximize, close' buttons.</p>
+
+<h3>Themes</h3>
+
+<p>What theme to use for the buttons.
+There are two settings that control what theme is used: <code>doMetacity</code> and <code>theme</code>.</p>
+
+<p>If <code>doMetacity</code> is set to <code>true</code>, window buttons will use whatever theme is in <code>/apps/metacity/general/theme</code> (if we have a matching theme). Otherwise, we we will use the <code>theme</code> setting to determine which theme to use.</p>
+
+<p>Themes are stored in the <code>themes</code> directory of this extension, for example <code>~/.local/share/gnome-shell/extensions/window_butons@biox.github.com/themes</code>.
+You must set the <code>theme</code> to one of these names.
+For further details see the 'Themes' section below.</p>
+
+<h3>Controlling maximized windows</h3>
+
+<p>By default, Window Buttons will control the <em>current active</em> window.</p>
+
+<p>It is possible to set Window Buttons to prioritise controlling maximized windows.
+That means that if you press (say) 'minimize', the window that will be minimized will be the <em>uppermost maximized window</em>, which is <em>not necessarily the currently focused window</em>!</p>
+
+<p>If there are no maximized windows then the buttons will affect the currently focused window.</p>
+
+<p>If you want this (somewhat confusing?) behaviour, then set the setting <code>onlymax</code> to <code>true</code>.</p>
+
+<p>Furthermore, you can have the buttons only be visible when there is a maximized window to control - if you want this, set <code>hideonmax</code> to <code>true</code>.</p>
+
+<h3>Positioning the buttons in the panel</h3>
+
+<p>Recall you can position the left and right groups of buttons separately (determined by the colon ':' in <code>order</code>).</p>
+
+<p>If you use GNOME 3.4, use <code>gnome-shell-extension-prefs</code> for the positioning - it's easier.</p>
+
+<p>If you use GNOME 3.2, it's a little more confusing. See the following from <code>extension.js</code>.</p>
+
+<pre><code>const buttonPosition = {
+    left: {
+        // Position of the left group of buttons (if any). Change as you like.
+        // Default: between the activities bar and the app menu, i.e. second
+        //  item from the left in the left box.
+        box: Boxes.LEFT,
+        position: 2
+    },
+
+    right: {
+        // Position of the right group of buttons (if any). Change as you like.
+        // Default: after the title bar as far right as possible, i.e. the first
+        // item from the left in the right box.
+        box: Boxes.RIGHT,
+        position: 1
+    }
+};
+</code></pre>
+
+<p>The position of a button group is determined by two factors: what <em>box</em> it is in, and what <em>position</em> it has <em>within that box</em>.</p>
+
+<p>For the box:</p>
+
+<ul>
+<li><code>Boxes.LEFT</code> means in the left box (usually holds the activities and
+window title buttons)</li>
+<li><code>Boxes.MIDDLE</code> means the centre box (usually holds the date/time, unless
+you have an extension that moves the clock to the right for you).</li>
+<li><code>Boxes.RIGHT</code> means the right box (status area, user menu).</li>
+</ul>
+
+<p>The position is a number representing whereabouts in the box you want the buttons to be.</p>
+
+<p>For example <code>1</code> means 'first item from the left', <code>2</code> means 'second item from the left' and so on. If you want to anchor from the right, use a negative number: <code>-1</code> means 'first item from the right' and so on.</p>
+
+<p>More examples are in <code>extension.js</code> (for GNOME 3.2).</p>
+
+<h2>Themes</h2>
+
+<p>The Window Buttons extension is themeable.
+Themes live in the <code>themes</code>. The name of the directory is the name of the theme.</p>
+
+<p>If you want to make your own theme, you have to add a folder into the <code>themes</code> directory.
+To start off, copy the <code>default</code> theme:</p>
+
+<pre><code>$ cd window_buttons@biox.github.com/themes
+$ cp -r default my_new_theme
+</code></pre>
+
+<p>Then, edit the <code>style.css</code> file to style the window buttons. 
+At a bare minimum, you need to define styles for <code>.window-button</code>, <code>.minimize</code>, <code>.maximize</code> and <code>.close</code>.</p>
+
+<p>The <code>.window-button</code> style affects each individual button.
+The <code>.minimize</code>, <code>.maximize</code> and <code>.close</code> styles define the styles for each individual button.
+You will have to do something like</p>
+
+<pre><code>background-img: url("path/to/picture")
+</code></pre>
+
+<p>for each button, and the picture should have the symbol for the button in it (i.e. we do not draw <code>_</code>, <code>X</code>, etc on the buttons).</p>
+
+<p>See <code>themes/default/style.css</code> for more information.</p>
+
+<h2>To-do</h2>
+
+<ul>
+<li>Add unfocused window support for better theming</li>
+<li>Modify themes so that we handle drawing the icon and only the background image need be provided?</li>
+<li>Moar themes!</li>
+</ul>
+
+<h2>Version map</h2>
+
+<p>For 'version', see 'version' in metadata.json (this is the version of the extension as it appears/is planned for on extensions.gnome.org).</p>
+
+<ul>
+<li>v1: GNOME 3.2-compatible.</li>
+<li>v2: GNOME 3.4-compatible.</li>
+</ul>
