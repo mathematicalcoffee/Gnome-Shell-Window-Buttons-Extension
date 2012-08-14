@@ -1,6 +1,6 @@
 #=============================================================================
 UUID=window_buttons@biox.github.com
-FILES=metadata.json *.js stylesheet.css schemas
+FILES=metadata.json *.js stylesheet.css schemas themes
 #=============================================================================
 default_target: all
 .PHONY: clean all zip
