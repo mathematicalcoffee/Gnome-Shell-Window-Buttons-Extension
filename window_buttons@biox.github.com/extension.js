@@ -384,7 +384,8 @@ WindowButtons.prototype = {
         let windows = workspace.list_windows();
         let maxwin = false;
         for (let i = windows.length - 1; i >= 0; --i) {
-            if (windows[i].get_maximized() && !windows[i].minimized) {
+            if (windows[i].get_maximized() === Meta.MaximizeFlags.BOTH &&
+                    !windows[i].minimized) {
                 maxwin = windows[i];
                 break;
             }
@@ -401,7 +402,7 @@ WindowButtons.prototype = {
             uppermost.minimize();
         } else {
             // If the active window is maximized, minimize it
-            if (activeWindow.get_maximized()) {
+            if (activeWindow.get_maximized() === Meta.MaximizeFlags.BOTH) {
                 activeWindow.minimize();
             // If the active window is not maximized, minimize the uppermost
             // maximized window if the option to only control maximized windows
@@ -433,7 +434,7 @@ WindowButtons.prototype = {
             uppermost.activate(global.get_current_time());
         } else {
             // If the active window is maximized, unmaximize it
-            if (activeWindow.get_maximized()) {
+            if (activeWindow.get_maximized() === Meta.MaximizeFlags.BOTH) {
                 activeWindow.unmaximize(Meta.MaximizeFlags.BOTH);
             // If the active window is not maximized, unmaximize the uppermost
             // maximized window if the option to only control maximized windows
@@ -462,7 +463,7 @@ WindowButtons.prototype = {
             uppermost.delete(global.get_current_time());
         } else {
             // If the active window is maximized, close it
-            if (activeWindow.get_maximized()) {
+            if (activeWindow.get_maximized() === Meta.MaximizeFlags.BOTH) {
                 activeWindow.delete(global.get_current_time());
             // If the active window is not maximized, close the uppermost
             // maximized window if the option to only control maximized windows
