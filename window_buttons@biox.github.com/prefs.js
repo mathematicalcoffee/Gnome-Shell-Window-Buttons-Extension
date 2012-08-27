@@ -22,13 +22,11 @@ const WA_PINCH = 'pinch';
 const WA_ORDER = 'order';
 const WA_THEME = 'theme';
 const WA_DO_METACITY = 'do-metacity';
-const WA_ONLYMAX = 'onlymax';
-const WA_HIDEONNOMAX = 'hideonnomax';
 const WA_LEFTBOX = 'box-left';
 const WA_LEFTPOS = 'position-left';
 const WA_RIGHTBOX = 'box-right';
 const WA_RIGHTPOS = 'position-right';
-
+const WA_SHOWBUTTONS = 'show-buttons';
 
 // Keep enums in sync with GSettings schemas
 const PinchType = {
@@ -43,6 +41,22 @@ const Boxes = {
     LEFT: 0,
     RIGHT: 1,
     MIDDLE: 2
+};
+
+// When to display the buttons.
+const ShowButtonsWhen = {
+    ALWAYS: 0,                    // Show buttons all the time.
+    WINDOWS: 1,                   // Show buttons whenever windows exist
+                                  //  (hides when no apps open)
+    WINDOWS_VISIBLE: 2,           // Show buttons whenever *visible* windows
+                                  //  exist (as previous, but will also hide if
+                                  //  all windows are minimized)
+    CURRENT_WINDOW_MAXIMIZED: 3,  // Show buttons only when the current window
+                                  //  is maximized.
+    ANY_WINDOW_MAXIMIZED: 4       // Show buttons when there is *any* maximized
+                                  //  window (in which case the uppermost
+                                  //  maximized window will be affected, which
+                                  //  may or may not be the current window!)
 };
 
 /* **** HELPER FUNCTIONS *** */
@@ -161,20 +175,24 @@ const WindowButtonsPrefsWidget = new GObject.Class({
         }));
         this.addRow("Which button order to use:", item);
 
-        // onlymax
-        this._onlymax = this.addBoolean("Control only maximized windows",
-            WA_ONLYMAX);
-
-        // hideonnomax
-        this._hideonmax = this.addBoolean(
-            "Hide if there are no maximized windows",
-            WA_HIDEONNOMAX);
-        // enable with onlymax
-        this._onlymax.connect('notify::active', Lang.bind(this, function () {
-            this._hideonmax.set_sensitive(this._onlymax.active);
-        }));
-        this._hideonmax.set_sensitive(this._onlymax.active);
-
+        // TODO: SHOWBUTTONS
+        /*
+// When to display the buttons.
+const ShowButtonsWhen = {
+    ALWAYS: 0,                    // Show buttons all the time.
+    WINDOWS: 1,                   // Show buttons whenever windows exist
+                                  //  (hides when no apps open)
+    WINDOWS_VISIBLE: 2,           // Show buttons whenever *visible* windows
+                                  //  exist (as previous, but will also hide if
+                                  //  all windows are minimized)
+    CURRENT_WINDOW_MAXIMIZED: 3,  // Show buttons only when the current window
+                                  //  is maximized.
+    ANY_WINDOW_MAXIMIZED: 4       // Show buttons when there is *any* maximized
+                                  //  window (in which case the uppermost
+                                  //  maximized window will be affected, which
+                                  //  may or may not be the current window!)
+};
+*/
     },
 
     /* insert controls for moving buttons */
