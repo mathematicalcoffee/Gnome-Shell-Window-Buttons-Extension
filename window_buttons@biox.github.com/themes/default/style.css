@@ -33,12 +33,24 @@
     background-image: url('min.svg');
 }
 
+.minimize:hover {
+    background-image: url('min_hover.svg');
+}
+
 /* Style for the maximize button */
 .maximize {
     background-image: url('max.svg');
 }
 
+.maximize:hover {
+    background-image: url('max_hover.svg');
+}
+
 /* Style for the close button */
 .close {
     background-image: url('close.svg');
+}
+
+.close:hover {
+    background-image: url('close_hover.svg');
 }
