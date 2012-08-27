@@ -36,6 +36,29 @@ const Boxes = {
     MIDDLE: 2
 };
 
+
+// [leave this alone] When to display the buttons.
+const ShowButtonsWhen = {
+    ALWAYS: 0,                    // Show buttons all the time.
+    WINDOWS: 1,                   // Show buttons whenever windows exist
+                                  //  (hides when no apps open)
+    WINDOWS_VISIBLE: 2,           // Show buttons whenever *visible* windows
+                                  //  exist (as previous, but will also hide if
+                                  //  all windows are minimized)
+    CURRENT_WINDOW_MAXIMIZED: 3,  // Show buttons only when the current window
+                                  //  is maximized.
+    ANY_WINDOW_MAXIMIZED: 4       // Show buttons when there is *any* maximized
+                                  //  window (in which case the uppermost
+                                  //  maximized window will be affected, which
+                                  //  may or may not be the current window!)
+// TODO: CURRENT_WINDOW_NOT_MAXIMIZED ?
+};
+
+// When should we show the buttons? (default: they are visible if and only if
+// there are windows on your workspace).
+// See ShowButtonsWhen above for an explanation of the options.
+const showbuttons = ShowButtonsWhen.WINDOWS;
+
 // The order of the window buttons (e.g. :minimize,maximize,close).
 // Colon splits the buttons into two groups, left and right, which can be
 // positioned separately.
@@ -107,15 +130,6 @@ const buttonPosition = {
     }
 };
 
-// Prioritise controlling windows which are maximized. Clicking one of the
-// window buttons will affect the upper-most maximized window if any, which
-// may not necessarily be the focused window. If there are no maximized windows
-// it will affect the current focused window.
-const onlymax = false;
-
-// Hide the window buttons if there are no maximized windows to control.
-// **Only has any effect is the 'onlymax' option above is set to true**
-const hideonnomax = false;
 
 /*********** CODE. LEAVE THE FOLLOWING **************/
 const Lang = imports.lang;
@@ -386,16 +400,72 @@ WindowButtons.prototype = {
         }
     },
 
+    /*
+     * ShowButtonsWhen.ALWAYS, WINDOWS, WINDOWS_VISIBLE,
+     * CURRENT_WINDOW_MAXIMIZED, ANY_WINDOW_MAXIMIZED
+     */
     _windowChanged: function () {
-        if (onlymax && hideonnomax) {
-            let activeWindow = global.display.focus_window;
-            if (this._upperMax()) {
-                this.leftActor.show();
-                this.rightActor.show();
-            } else {
-                this.leftActor.hide();
-                this.rightActor.hide();
+        let activeWindow = global.display.focus_window,
+            workspace = global.screen.get_active_workspace(),
+            windows = workspace.list_windows().filter(function (w) {
+                return w.get_window_type() !== Meta.WindowType.DESKTOP;
+            }),
+            show = false;
+
+        /* easy cases: ShowButtonsWhen.ALWAYS (always show), and
+         * ShowButtonsWhen.WINDOWS (just check windows.length)
+         */
+        switch (showbuttons) {
+        // show whenever there are windows
+        case ShowButtonsWhen.WINDOWS:
+            show = windows.length;
+            break;
+       
+        // show whenever there are non-minimized windows
+        case ShowButtonsWhen.WINDOWS_VISIBLE:
+            for (let i = 0; i < windows.length; ++i) {
+                if (!windows[i].minimized) {
+                    show = true;
+                    break;
+                }
             }
+            break;
+
+        // show iff current window is (fully) maximized
+        case ShowButtonsWhen.CURRENT_WINDOW_MAXIMIZED:
+            show = (activeWindow && activeWindow.get_maximized() === Meta.MaximizeFlags.BOTH);
+            break;
+
+        // show iff *any* window is (fully) maximized
+        case ShowButtonsWhen.ANY_WINDOW_MAXIMIZED:
+            for (let i = 0; i < windows.length; ++i) {
+                if (windows[i].get_maximized() === Meta.MaximizeFlags.BOTH) {
+                    show = true;
+                    break;
+                }
+            }
+            break;
+
+        // show all the time
+        case ShowButtonsWhen.ALWAYS:
+            /* falls through */
+        default:
+            show = true;
+            break;
+        }
+
+        // if the actors already match `show` don't do anything.
+        if (show === this.leftActor.visible &&
+                show === this.rightActor.visible) {
+            return;
+        }
+
+        if (show) {
+            this.leftActor.show();
+            this.rightActor.show();
+        } else {
+            this.leftActor.hide();
+            this.rightActor.hide();
         }
     },
 
@@ -408,36 +478,33 @@ WindowButtons.prototype = {
     // * the currently focused window.
     // * if all else fails, we return the uppermost window.
     _getWindowToControl: function () {
-        let win = global.display.focus_window;
+        let win = global.display.focus_window,
+            workspace = global.screen.get_active_workspace(),
+            windows = workspace.list_windows().filter(function (w) {
+                return w.get_window_type() !== Meta.WindowType.DESKTOP;
+            });
 
-        if (win === null || win.get_title() === "Desktop") {
-            // No windows are active, control the uppermost window
-            let winactors = global.get_window_actors();
-            win = winactors[winactors.length - 1].get_meta_window();
+        if (win === null || win.get_window_type() === Meta.WindowType.DESKTOP) {
+            // No windows are active, control the uppermost window on the
+            // current workspace
+            if (windows.length) {
+                win = windows[windows.length - 1].get_meta_window();
+            }
         }
 
-        // Incorporate onlymax behaviour
-        if (onlymax) {
-            win = this._upperMax() || win;
+        // Incorporate onlymax behaviour: get the uppermost maximized window
+        if (showbuttons === ShowButtonsWhen.ANY_WINDOW_MAXIMIZED) {
+            let i = windows.length;
+            while (i--) {
+                if (windows[i].get_maximized() === Meta.MaxmizeFlags.BOTH &&
+                        !windows[i].minimized) {
+                    win = windows[i];
+                    break;
+                }
+            }
         }
 
         return win;
-    },
-
-    // Return the uppermost maximized window from the current workspace, or
-    // false is there is none
-    _upperMax: function () {
-        let workspace = global.screen.get_active_workspace();
-        let windows = workspace.list_windows();
-        let maxwin = false;
-        for (let i = windows.length - 1; i >= 0; --i) {
-            if (windows[i].get_maximized() === Meta.MaximizeFlags.BOTH &&
-                    !windows[i].minimized) {
-                maxwin = windows[i];
-                break;
-            }
-        }
-        return maxwin;
     },
 
     _minimize: function () {
@@ -498,6 +565,7 @@ WindowButtons.prototype = {
         this._loadTheme();
 
         // Connect to window change events
+        // TODO: do not connect if showbuttons says we don't have to.
         this._wmSignals = [];
         this._windowTrackerSignal = Shell.WindowTracker.get_default().connect(
                 'notify::focus-app', Lang.bind(this, this._windowChanged));
