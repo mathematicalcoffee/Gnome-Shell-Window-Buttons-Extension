@@ -137,7 +137,9 @@ let extensionPath = "";
 Meta.MaximizeFlags.BOTH = (Meta.MaximizeFlags.HORIZONTAL |
     Meta.MaximizeFlags.VERTICAL);
 
-const _ORDER_DEFAULT = order;
+const _ORDER_DEFAULT = ":minimize,maximize,close";
+const DCONF_META_THEME_KEY = 'org.gnome.desktop.wm.preferences';
+const GCONF_META_THEME_KEY = '/apps/metacity/general/theme';
 
 /********************
  * Helper functions *
@@ -249,19 +251,39 @@ WindowButtons.prototype = {
     },
 
     _loadTheme: function () {
+        let newtheme = theme;
         if (doMetacity) {
-            // GTK theme name (e.g. Adwaita - we don't have a style for that
-            // yet!)
-            // theme = new imports.gi.Gio.Settings({
-            //     schema: "org.gnome.desktop.interface"
-            // }).get_string("gtk-theme");
-            // Get Mutter / Metacity theme name
-            theme = GConf.Client.get_default().get_string(
-                    '/apps/metacity/general/theme');
+            // GTK theme name:
+            // theme = Gio.Settings.new('org.gnome.desktop.interface'
+            // ).get_string('gtk-theme')
+
+            // Get Mutter / Metacity theme name.
+            // try dconf (GNOME 3.4) first. NOTE: on GNOME 3.2 this will
+            // segfault if the schema is not installed, hence we use
+            // Gio.Settings.list_schemas():
+            let newtheme = Gio.Settings.list_schemas().filter(function (k) {
+                return k === DCONF_META_THEME_KEY;
+            });
+            if (newtheme.length) {
+                // dconf, GNOME 3.4
+                newtheme = Gio.Settings.new(DCONF_META_THEME_KEY);
+                newtheme = newtheme.get_string('theme');
+            } else {
+                // gconf, GNOME 3.2
+                // GNOME 3.2:
+                newtheme = GConf.Client.get_default().get_string(
+                        GCONF_META_THEME_KEY);
+            }
+        }
+
+        // if still no theme, use the old one or 'default'
+        if (!newtheme) {
+            warn("Could not load the requested theme.");
+            newtheme = theme || 'default';
         }
 
         // Get CSS of new theme, and check it exists, falling back to 'default'
-        let cssPath = GLib.build_filenamev([extensionPath, 'themes', theme,
+        let cssPath = GLib.build_filenamev([extensionPath, 'themes', newtheme,
                                             'style.css']);
         if (!GLib.file_test(cssPath, GLib.FileTest.EXISTS)) {
             cssPath = GLib.build_filenamev([extensionPath,
