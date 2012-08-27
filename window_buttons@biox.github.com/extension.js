@@ -155,7 +155,7 @@ WindowButtons.prototype = {
             // try dconf (GNOME 3.4) first. NOTE: on GNOME 3.2 this will
             // segfault if the schema is not installed, hence we use
             // Gio.Settings.list_schemas():
-            let theme = Gio.Settings.list_schemas().filter(function (k) {
+            theme = Gio.Settings.list_schemas().filter(function (k) {
                 return k === DCONF_META_THEME_KEY;
             });
             if (theme.length) {
@@ -229,9 +229,9 @@ WindowButtons.prototype = {
             order = GConf.Client.get_default().get_string(
                     "/apps/metacity/general/button_layout");
         } else if (pinch === PinchType.GNOME_SHELL) {
-            order = new Gio.Settings({
-                schema: 'org.gnome.shell.overrides'
-            }).get_string('button-layout');
+            order = Gio.Settings.new(
+                'org.gnome.shell.overrides'
+            ).get_string('button-layout');
         }
         /* if order is null because keys don't exist, get them from settings
          * (PinchType.CUSTOM) */
