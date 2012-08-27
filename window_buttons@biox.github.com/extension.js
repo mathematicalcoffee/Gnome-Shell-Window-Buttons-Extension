@@ -399,6 +399,31 @@ WindowButtons.prototype = {
         }
     },
 
+    // Returns the window to control.
+    // This is:
+    // * the currently focused window.
+    // * onlymax is TRUE, in which case it is the uppermost *maximized*
+    //   window, whether or not this is active or not. If there are no
+    //   maximized windows, it defaults to:
+    // * the currently focused window.
+    // * if all else fails, we return the uppermost window.
+    _getWindowToControl: function () {
+        let win = global.display.focus_window;
+
+        if (win === null || win.get_title() === "Desktop") {
+            // No windows are active, control the uppermost window
+            let winactors = global.get_window_actors();
+            win = winactors[winactors.length - 1].get_meta_window();
+        }
+
+        // Incorporate onlymax behaviour
+        if (onlymax) {
+            win = this._upperMax() || win;
+        }
+
+        return win;
+    },
+
     // Return the uppermost maximized window from the current workspace, or
     // false is there is none
     _upperMax: function () {
@@ -416,94 +441,44 @@ WindowButtons.prototype = {
     },
 
     _minimize: function () {
-        let activeWindow = global.display.focus_window;
-        if (activeWindow === null || activeWindow.get_title() === "Desktop") {
-            // No windows are active, minimize the uppermost window
-            let winactors = global.get_window_actors();
-            let uppermost = winactors[winactors.length - 1].get_meta_window();
-            uppermost.minimize();
+        let win = this._getWindowToControl();
+        if (!win) {
+            return;
+        }
+
+        // minimize/unmaximize
+        if (win.minimized) {
+            win.unminimize();
+            win.activate(global.get_current_time());
         } else {
-            // If the active window is maximized, minimize it
-            if (activeWindow.get_maximized() === Meta.MaximizeFlags.BOTH) {
-                activeWindow.minimize();
-            // If the active window is not maximized, minimize the uppermost
-            // maximized window if the option to only control maximized windows
-            // is set
-            } else if (onlymax) {
-                let uppermax = this._upperMax();
-                if (uppermax) {
-                    uppermax.minimize();
-                    activeWindow.activate(global.get_current_time());
-                } else {
-                    // If no maximized windows, minimize the active window
-                    activeWindow.minimize();
-                }
-            // Otherwise minimize the active window
-            } else {
-                activeWindow.minimize();
-            }
+            win.minimize();
         }
     },
 
     _maximize: function () {
-        let activeWindow = global.display.focus_window;
-        if (activeWindow === null || activeWindow.get_title() === "Desktop") {
-            // No windows are active, maximize the uppermost window
-            let winactors = global.get_window_actors();
-            let uppermost = winactors[winactors.length - 1].get_meta_window();
-            uppermost.maximize(Meta.MaximizeFlags.BOTH);
-            // May as well activate it too...
-            uppermost.activate(global.get_current_time());
-        } else {
-            // If the active window is maximized, unmaximize it
-            if (activeWindow.get_maximized() === Meta.MaximizeFlags.BOTH) {
-                activeWindow.unmaximize(Meta.MaximizeFlags.BOTH);
-            // If the active window is not maximized, unmaximize the uppermost
-            // maximized window if the option to only control maximized windows
-            // is set
-            } else if (onlymax) {
-                let uppermax = this._upperMax();
-                if (uppermax) {
-                    uppermax.unmaximize(Meta.MaximizeFlags.BOTH);
-                    activeWindow.activate(global.get_current_time());
-                } else {
-                    activeWindow.maximize(Meta.MaximizeFlags.BOTH);
-                }
-            // Otherwise unmaximize the active window
-            } else {
-                activeWindow.maximize(Meta.MaximizeFlags.BOTH);
-            }
+        let win = this._getWindowToControl();
+        if (!win) {
+            return;
         }
+
+        // maximize/unmaximize. We count half-maximized as not maximized & will
+        // fully maximize it.
+        if (win.get_maximized() === Meta.MaximizeFlags.BOTH) {
+            win.unmaximize(Meta.MaximizeFlags.BOTH);
+        } else {
+            win.maximize(Meta.MaximizeFlags.BOTH);
+        }
+        win.activate(global.get_current_time());
     },
 
     _close: function () {
-        let activeWindow = global.display.focus_window;
-        if (activeWindow === null || activeWindow.get_title() === "Desktop") {
-            // No windows are active, close the uppermost window
-            let winactors = global.get_window_actors();
-            let uppermost = winactors[winactors.length - 1].get_meta_window();
-            uppermost.delete(global.get_current_time());
-        } else {
-            // If the active window is maximized, close it
-            if (activeWindow.get_maximized() === Meta.MaximizeFlags.BOTH) {
-                activeWindow.delete(global.get_current_time());
-            // If the active window is not maximized, close the uppermost
-            // maximized window if the option to only control maximized windows
-            // is set
-            } else if (onlymax) {
-                let uppermax = this._upperMax();
-                if (uppermax) {
-                    uppermax.delete(global.get_current_time());
-                    activeWindow.activate(global.get_current_time());
-                } else {
-                    // If no maximized windows, close the active window
-                    activeWindow.delete(global.get_current_time());
-                }
-            // Otherwise close the active window
-            } else {
-                activeWindow.delete(global.get_current_time());
-            }
+        let win = this._getWindowToControl();
+        if (!win) {
+            return;
         }
+
+        // close it.
+        win.delete(global.get_current_time());
     },
 
     enable: function () {
