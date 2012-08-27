@@ -47,6 +47,8 @@ Meta.MaximizeFlags.BOTH = (Meta.MaximizeFlags.HORIZONTAL |
     Meta.MaximizeFlags.VERTICAL);
 
 const _ORDER_DEFAULT = ":minimize,maximize,close";
+const DCONF_META_THEME_KEY = 'org.gnome.desktop.wm.preferences';
+const GCONF_META_THEME_KEY = '/apps/metacity/general/theme';
 
 function warn(msg) {
     log("WARNING [Window Buttons]: " + msg);
@@ -145,16 +147,35 @@ WindowButtons.prototype = {
             doMetacity = this._settings.get_boolean(WA_DO_METACITY);
 
         if (doMetacity) {
-            // GTK theme name (e.g. Adwaita - we don't have a style for that
-            // yet!)
-            // theme = new imports.gi.Gio.Settings({
-            //     schema: "org.gnome.desktop.interface"
-            // }).get_string("gtk-theme");
-            // Get Mutter / Metacity theme name
-            theme = GConf.Client.get_default().get_string(
-                    "/apps/metacity/general/theme");
+            // GTK theme name:
+            // theme = Gio.Settings.new('org.gnome.desktop.interface'
+            // ).get_string('gtk-theme')
+
+            // Get Mutter / Metacity theme name.
+            // try dconf (GNOME 3.4) first. NOTE: on GNOME 3.2 this will
+            // segfault if the schema is not installed, hence we use
+            // Gio.Settings.list_schemas():
+            let theme = Gio.Settings.list_schemas().filter(function (k) {
+                return k === DCONF_META_THEME_KEY;
+            });
+            if (theme.length) {
+                // dconf, GNOME 3.4
+                theme = Gio.Settings.new(DCONF_META_THEME_KEY);
+                theme = theme.get_string('theme');
+            } else {
+                // gconf, GNOME 3.2
+                // GNOME 3.2:
+                theme = GConf.Client.get_default().get_string(
+                        GCONF_META_THEME_KEY);
+            }
         } else {
             theme = this._settings.get_string(WA_THEME);
+        }
+
+        // if still no theme, use the old one or 'default'
+        if (!theme) {
+            warn("Could not load the requested theme.");
+            theme = oldtheme || 'default';
         }
         if (theme === oldtheme) {
             return;
