@@ -311,8 +311,7 @@ WindowButtons.prototype = {
      * CURRENT_WINDOW_MAXIMIZED, ANY_WINDOW_MAXIMIZED
      */
     _windowChanged: function () {
-        let activeWindow = global.display.focus_window,
-            workspace = global.screen.get_active_workspace(),
+        let workspace = global.screen.get_active_workspace(),
             windows = workspace.list_windows().filter(function (w) {
                 return w.get_window_type() !== Meta.WindowType.DESKTOP;
             }),
@@ -339,7 +338,10 @@ WindowButtons.prototype = {
 
         // show iff current window is (fully) maximized
         case ShowButtonsWhen.CURRENT_WINDOW_MAXIMIZED:
-            show = (activeWindow && activeWindow.get_maximized() === Meta.MaximizeFlags.BOTH);
+            let activeWindow = global.display.focus_window;
+            show = (activeWindow ?
+                    activeWindow.get_maximized() === Meta.MaximizeFlags.BOTH :
+                    false);
             break;
 
         // show iff *any* window is (fully) maximized
@@ -363,9 +365,8 @@ WindowButtons.prototype = {
         // if the actors already match `show` don't do anything.
         if (show === this.leftActor.visible &&
                 show === this.rightActor.visible) {
-            return;
+            return false;
         }
-
         if (show) {
             this.leftActor.show();
             this.rightActor.show();
@@ -373,6 +374,7 @@ WindowButtons.prototype = {
             this.leftActor.hide();
             this.rightActor.hide();
         }
+        return false;
     },
 
     // Returns the window to control.
@@ -399,7 +401,8 @@ WindowButtons.prototype = {
         }
 
         // Incorporate onlymax behaviour: get the uppermost maximized window
-        if (this._settings.get_enum(WA_SHOWBUTTONS) === ShowButtonsWhen.ANY_WINDOW_MAXIMIZED) {
+        if (this._settings.get_enum(WA_SHOWBUTTONS) ===
+                ShowButtonsWhen.ANY_WINDOW_MAXIMIZED) {
             let i = windows.length;
             while (i--) {
                 if (windows[i].get_maximized() === Meta.MaxmizeFlags.BOTH &&
@@ -524,6 +527,71 @@ WindowButtons.prototype = {
         this._locked = false;
     },
 
+    _connectSignals: function () {
+        let showbuttons = this._settings.get_enum(WA_SHOWBUTTONS);
+
+        // if we are always showing the buttons then we don't have to listen
+        // to window events
+        if (showbuttons === ShowButtonsWhen.ALWAYS) {
+            return;
+        }
+
+        // for mode WINDOWS we only need to listen to map and destroy and
+        // switch-workspace (we just want to detect whether there are any
+        // windows at all on the WS)
+        this._wmSignals.push(global.window_manager.connect('switch-workspace',
+            Lang.bind(this, this._windowChanged)));
+        this._wmSignals.push(global.window_manager.connect('map',
+			Lang.bind(this, this._windowChanged)));
+        // note: 'destroy' needs a delay for .list_windows() report correctly
+        this._wmSignals.push(global.window_manager.connect('destroy',
+			Lang.bind(this, function () {
+                Mainloop.idle_add(Lang.bind(this, this._windowChanged));
+            })));
+        if (showbuttons === ShowButtonsWhen.WINDOWS) {
+            return;
+        }
+
+        // for WINDOWS_VISIBLE we additionally need to listen to min (unmin
+        // is covered by map)
+        this._wmSignals.push(global.window_manager.connect('minimize',
+			Lang.bind(this, this._windowChanged)));
+
+        if (showbuttons === ShowButtonsWhen.WINDOWS_VISIBLE) {
+            return;
+        }
+
+        // for any_window_maximized we additionaly have to be aware of max/unmax
+        // events.
+        this._wmSignals.push(global.window_manager.connect('maximize',
+			Lang.bind(this, this._windowChanged)));
+        this._wmSignals.push(global.window_manager.connect('unmaximize',
+			Lang.bind(this, this._windowChanged)));
+
+        if (showbuttons === ShowButtonsWhen.ANY_WINDOW_MAXIMIZED) {
+            return;
+        }
+
+        // for current_window_maximized we additinally want focus-app
+        // NOTE: this fires twice per focus-event, the first with activeWindow
+        // being `null` and the second with it being the newly-focused window.
+        // (Unless there is no newly-focused window).
+        // What a waste!
+        this._windowTrackerSignal = Shell.WindowTracker.get_default().connect(
+                'notify::focus-app', Lang.bind(this, this._windowChanged));
+    },
+
+    _disconnectSignals: function () {
+        if (this._windowTrackerSignal) {
+            Shell.WindowTracker.get_default().disconnect(this._windowTrackerSignal);
+        }
+        for (let i = 0; i < this._wmSignals; ++i) {
+            global.window_manager.disconnect(this._wmSignals.pop());
+        }
+        this._wmSignals = [];
+        this._windowTrackerSignal = 0;
+    },
+
     enable: function () {
         //Create boxes for the buttons
         this.rightActor = new St.Bin({ style_class: 'box-bin'});
@@ -550,7 +618,11 @@ WindowButtons.prototype = {
         this._settings.connect('changed::' + WA_PINCH,
                 Lang.bind(this, this._display));
         this._settings.connect('changed::' + WA_SHOWBUTTONS,
-                Lang.bind(this, this._windowChanged));
+                Lang.bind(this, function () {
+                    this._disconnectSignals();
+                    this._connectSignals();
+                    this._windowChanged();
+                }));
 
         this._settings.connect('changed::' + WA_LEFTPOS, Lang.bind(this,
                     this._onPositionChange, WA_LEFTPOS, WA_LEFTBOX));
@@ -563,22 +635,9 @@ WindowButtons.prototype = {
                     this._onPositionChange, WA_RIGHTPOS, WA_RIGHTBOX));
 
         // Connect to window change events
-        // TODO: do not connect if showbuttons says we don't have to.
         this._wmSignals = [];
-        this._windowTrackerSignal = Shell.WindowTracker.get_default().connect(
-                'notify::focus-app', Lang.bind(this, this._windowChanged));
-        this._wmSignals.push(global.window_manager.connect('switch-workspace',
-            Lang.bind(this, this._windowChanged)));
-        this._wmSignals.push(global.window_manager.connect('minimize',
-			Lang.bind(this, this._windowChanged)));
-        this._wmSignals.push(global.window_manager.connect('maximize',
-			Lang.bind(this, this._windowChanged)));
-        this._wmSignals.push(global.window_manager.connect('unmaximize',
-			Lang.bind(this, this._windowChanged)));
-        this._wmSignals.push(global.window_manager.connect('map',
-			Lang.bind(this, this._windowChanged)));
-        this._wmSignals.push(global.window_manager.connect('destroy',
-			Lang.bind(this, this._windowChanged)));
+        this._windowTrackerSignal = 0;
+        this._connectSignals();
 
         let leftbox = this._settings.get_enum(WA_LEFTBOX),
             rightbox = this._settings.get_enum(WA_RIGHTBOX),
@@ -589,6 +648,8 @@ WindowButtons.prototype = {
         this._rightContainer = getBox(rightbox);
 
         // A delay is needed to let all the other icons load first.
+        // Also, show or hide buttons after a delay to let all the windows
+        // be properly "there".
         Mainloop.idle_add(Lang.bind(this, function () {
             this._leftContainer.insert_child_at_index(this.leftActor,
                     getPosition(this._leftContainer, leftpos,
@@ -596,11 +657,13 @@ WindowButtons.prototype = {
             this._rightContainer.insert_child_at_index(this.rightActor,
                     getPosition(this._rightContainer,
                         rightpos, getNChildren(this._rightContainer)));
+
+            // Show or hide buttons
+            this._windowChanged();
+
             return false;
         }));
 
-        // Show or hide buttons
-        this._windowChanged();
     },
 
     disable: function () {
@@ -609,10 +672,7 @@ WindowButtons.prototype = {
 
         /* disconnect all signals */
         this._settings.disconnectAll();
-        Shell.WindowTracker.get_default().disconnect(this._windowTrackerSignal);
-        for (let i = 0; i < this._wmSignals; ++i) {
-            global.window_manager.disconnect(this._wmSignals.pop());
-        }
+        this._disconnectSignals();
     }
 };
 
