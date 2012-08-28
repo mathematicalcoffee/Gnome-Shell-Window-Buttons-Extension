@@ -3,7 +3,6 @@
  *  based off prefs.js from the gnome shell extensions repository at
  *  git.gnome.org/browse/gnome-shell-extensions
  */
-// TODO: improve explanation layout (perhaps in a Gtk hide/frame)
 
 const GLib = imports.gi.GLib;
 const GObject = imports.gi.GObject;
@@ -195,6 +194,11 @@ const WindowButtonsPrefsWidget = new GObject.Class({
                                       "window!**."
             };
         this.addRow("When should the buttons appear?", item);
+        let grid = new Gtk.Grid({column_spacing: 10}),
+            expander = new Gtk.Expander({
+                label: "Explanation of show-button modes"
+            });
+        grid._rownum = 0;
         for (let type in ShowButtonsWhen) {
             if (!ShowButtonsWhen.hasOwnProperty(type)) {
                 continue;
@@ -202,12 +206,8 @@ const WindowButtonsPrefsWidget = new GObject.Class({
             let label = type.toLowerCase().replace(/_/g, ' ');
             item.append(ShowButtonsWhen[type].toString(), label);
 
-            let hbox = new Gtk.Box({orientation: Gtk.Orientation.HORIZONTAL});
-            hbox.spacing = 10;
             let label2 = new Gtk.Label({
-                label: label + ':',
-                hexpand: false,
-                halign: Gtk.Align.START
+                label: label + ':'
             });
             let explan = new Gtk.Label({
                 label: explanations[type],
@@ -217,9 +217,9 @@ const WindowButtonsPrefsWidget = new GObject.Class({
             label2.set_alignment(0, 0);
             explan.set_alignment(0, 0);
             explan.set_line_wrap(true);
-            hbox.add(label2);
-            hbox.add(explan);
-            this.addItem(hbox);
+            grid.attach(label2, 0, grid._rownum, 1, 1);
+            grid.attach(explan, 1, grid._rownum, 1, 1);
+            grid._rownum++;
         }
         item.set_active_id(this._settings.get_enum(WA_SHOWBUTTONS).toString());
         item.connect('changed', Lang.bind(this, function (combo) {
@@ -229,6 +229,8 @@ const WindowButtonsPrefsWidget = new GObject.Class({
                 this._settings.set_enum(WA_SHOWBUTTONS, value);
             }
         }));
+        expander.add(grid);
+        this.addItem(expander);
     },
 
     /* insert controls for moving buttons */
