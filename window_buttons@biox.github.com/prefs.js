@@ -3,6 +3,7 @@
  *  based off prefs.js from the gnome shell extensions repository at
  *  git.gnome.org/browse/gnome-shell-extensions
  */
+// TODO: improve explanation layout (perhaps in a Gtk hide/frame)
 
 const GLib = imports.gi.GLib;
 const GObject = imports.gi.GObject;
@@ -176,8 +177,7 @@ const WindowButtonsPrefsWidget = new GObject.Class({
 
         // when to display the buttons (show-buttons)
         item = new Gtk.ComboBoxText();
-        let grid = new Gtk.Grid(),
-            explanations = {
+        let explanations = {
                 ALWAYS: "buttons will be shown all the time.",
                 WINDOWS: "buttons will be shown if and only if there are " +
                          "windows on the workspace.",
@@ -191,10 +191,10 @@ const WindowButtonsPrefsWidget = new GObject.Class({
                                       " the workspace. In this case, clicking" +
                                       " on a window button will control the " +
                                       "**uppermost maximized window** which " +
-                                      "is **not necesserily the current " +
+                                      "is **not necessarily the current " +
                                       "window!**."
             };
-        grid._rownum = 0;
+        this.addRow("When should the buttons appear?", item);
         for (let type in ShowButtonsWhen) {
             if (!ShowButtonsWhen.hasOwnProperty(type)) {
                 continue;
@@ -202,23 +202,33 @@ const WindowButtonsPrefsWidget = new GObject.Class({
             let label = type.toLowerCase().replace(/_/g, ' ');
             item.append(ShowButtonsWhen[type].toString(), label);
 
-
+            let hbox = new Gtk.Box({orientation: Gtk.Orientation.HORIZONTAL});
+            hbox.spacing = 10;
+            let label2 = new Gtk.Label({
+                label: label + ':',
+                hexpand: false,
+                halign: Gtk.Align.START
+            });
             let explan = new Gtk.Label({
                 label: explanations[type],
                 hexpand: true,
                 halign: Gtk.Align.START
             });
-            this.addRow.call(grid, label + ":", explan);
+            label2.set_alignment(0, 0);
+            explan.set_alignment(0, 0);
+            explan.set_line_wrap(true);
+            hbox.add(label2);
+            hbox.add(explan);
+            this.addItem(hbox);
         }
+        item.set_active_id(this._settings.get_enum(WA_SHOWBUTTONS).toString());
         item.connect('changed', Lang.bind(this, function (combo) {
             let value = parseInt(combo.get_active_id(), 10);
             if (value !== undefined &&
-                this._settings.get_string(WA_SHOWBUTTONS) !== value) {
-                this._settings.set_string(WA_SHOWBUTTONS, value);
+                this._settings.get_enum(WA_SHOWBUTTONS) !== value) {
+                this._settings.set_enum(WA_SHOWBUTTONS, value);
             }
         }));
-        this.addRow("When should the buttons appear?", item);
-        this.addItem(grid);
     },
 
     /* insert controls for moving buttons */
