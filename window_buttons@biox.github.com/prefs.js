@@ -95,7 +95,6 @@ const WindowButtonsPrefsWidget = new GObject.Class({
         Gtk.Settings.get_default().gtk_button_images = true;
 
         // themes: look in extensionPath/themes
-        // TODO: disable this if doMetacity
         let info,
             item = new Gtk.ComboBoxText(),
             themes_dir = Gio.file_new_for_path(
@@ -175,24 +174,51 @@ const WindowButtonsPrefsWidget = new GObject.Class({
         }));
         this.addRow("Which button order to use:", item);
 
-        // TODO: SHOWBUTTONS
-        /*
-// When to display the buttons.
-const ShowButtonsWhen = {
-    ALWAYS: 0,                    // Show buttons all the time.
-    WINDOWS: 1,                   // Show buttons whenever windows exist
-                                  //  (hides when no apps open)
-    WINDOWS_VISIBLE: 2,           // Show buttons whenever *visible* windows
-                                  //  exist (as previous, but will also hide if
-                                  //  all windows are minimized)
-    CURRENT_WINDOW_MAXIMIZED: 3,  // Show buttons only when the current window
-                                  //  is maximized.
-    ANY_WINDOW_MAXIMIZED: 4       // Show buttons when there is *any* maximized
-                                  //  window (in which case the uppermost
-                                  //  maximized window will be affected, which
-                                  //  may or may not be the current window!)
-};
-*/
+        // when to display the buttons (show-buttons)
+        item = new Gtk.ComboBoxText();
+        let grid = new Gtk.Grid(),
+            explanations = {
+                ALWAYS: "buttons will be shown all the time.",
+                WINDOWS: "buttons will be shown if and only if there are " +
+                         "windows on the workspace.",
+                WINDOWS_VISIBLE: "buttons will be shown if and only if there " +
+                                 "are *visible* (i.e. non-minimized) windows " +
+                                 "on the workspace.",
+                CURRENT_WINDOW_MAXIMIZED: "buttons will be shown if and only " +
+                                          "if the current window is maximized.",
+                ANY_WINDOW_MAXIMIZED: "buttons will be shown if and only if " +
+                                      "there are *any* *maximized* windows on" +
+                                      " the workspace. In this case, clicking" +
+                                      " on a window button will control the " +
+                                      "**uppermost maximized window** which " +
+                                      "is **not necesserily the current " +
+                                      "window!**."
+            };
+        grid._rownum = 0;
+        for (let type in ShowButtonsWhen) {
+            if (!ShowButtonsWhen.hasOwnProperty(type)) {
+                continue;
+            }
+            let label = type.toLowerCase().replace(/_/g, ' ');
+            item.append(ShowButtonsWhen[type].toString(), label);
+
+
+            let explan = new Gtk.Label({
+                label: explanations[type],
+                hexpand: true,
+                halign: Gtk.Align.START
+            });
+            this.addRow.call(grid, label + ":", explan);
+        }
+        item.connect('changed', Lang.bind(this, function (combo) {
+            let value = parseInt(combo.get_active_id(), 10);
+            if (value !== undefined &&
+                this._settings.get_string(WA_SHOWBUTTONS) !== value) {
+                this._settings.set_string(WA_SHOWBUTTONS, value);
+            }
+        }));
+        this.addRow("When should the buttons appear?", item);
+        this.addItem(grid);
     },
 
     /* insert controls for moving buttons */
