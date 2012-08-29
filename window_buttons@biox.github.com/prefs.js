@@ -22,13 +22,11 @@ const WA_PINCH = 'pinch';
 const WA_ORDER = 'order';
 const WA_THEME = 'theme';
 const WA_DO_METACITY = 'do-metacity';
-const WA_ONLYMAX = 'onlymax';
-const WA_HIDEONNOMAX = 'hideonnomax';
 const WA_LEFTBOX = 'box-left';
 const WA_LEFTPOS = 'position-left';
 const WA_RIGHTBOX = 'box-right';
 const WA_RIGHTPOS = 'position-right';
-
+const WA_SHOWBUTTONS = 'show-buttons';
 
 // Keep enums in sync with GSettings schemas
 const PinchType = {
@@ -43,6 +41,22 @@ const Boxes = {
     LEFT: 0,
     RIGHT: 1,
     MIDDLE: 2
+};
+
+// When to display the buttons.
+const ShowButtonsWhen = {
+    ALWAYS: 0,                    // Show buttons all the time.
+    WINDOWS: 1,                   // Show buttons whenever windows exist
+                                  //  (hides when no apps open)
+    WINDOWS_VISIBLE: 2,           // Show buttons whenever *visible* windows
+                                  //  exist (as previous, but will also hide if
+                                  //  all windows are minimized)
+    CURRENT_WINDOW_MAXIMIZED: 3,  // Show buttons only when the current window
+                                  //  is maximized.
+    ANY_WINDOW_MAXIMIZED: 4       // Show buttons when there is *any* maximized
+                                  //  window (in which case the uppermost
+                                  //  maximized window will be affected, which
+                                  //  may or may not be the current window!)
 };
 
 /* **** HELPER FUNCTIONS *** */
@@ -81,7 +95,6 @@ const WindowButtonsPrefsWidget = new GObject.Class({
         Gtk.Settings.get_default().gtk_button_images = true;
 
         // themes: look in extensionPath/themes
-        // TODO: disable this if doMetacity
         let info,
             item = new Gtk.ComboBoxText(),
             themes_dir = Gio.file_new_for_path(
@@ -161,20 +174,63 @@ const WindowButtonsPrefsWidget = new GObject.Class({
         }));
         this.addRow("Which button order to use:", item);
 
-        // onlymax
-        this._onlymax = this.addBoolean("Control only maximized windows",
-            WA_ONLYMAX);
+        // when to display the buttons (show-buttons)
+        item = new Gtk.ComboBoxText();
+        let explanations = {
+                ALWAYS: "buttons will be shown all the time.",
+                WINDOWS: "buttons will be shown if and only if there are " +
+                         "windows on the workspace.",
+                WINDOWS_VISIBLE: "buttons will be shown if and only if there " +
+                                 "are *visible* (i.e. non-minimized) windows " +
+                                 "on the workspace.",
+                CURRENT_WINDOW_MAXIMIZED: "buttons will be shown if and only " +
+                                          "if the current window is maximized.",
+                ANY_WINDOW_MAXIMIZED: "buttons will be shown if and only if " +
+                                      "there are *any* *maximized* windows on" +
+                                      " the workspace. In this case, clicking" +
+                                      " on a window button will control the " +
+                                      "**uppermost maximized window** which " +
+                                      "is **not necessarily the current " +
+                                      "window!**."
+            };
+        this.addRow("When should the buttons appear?", item);
+        let grid = new Gtk.Grid({column_spacing: 10}),
+            expander = new Gtk.Expander({
+                label: "Explanation of show-button modes"
+            });
+        grid._rownum = 0;
+        for (let type in ShowButtonsWhen) {
+            if (!ShowButtonsWhen.hasOwnProperty(type)) {
+                continue;
+            }
+            let label = type.toLowerCase().replace(/_/g, ' ');
+            item.append(ShowButtonsWhen[type].toString(), label);
 
-        // hideonnomax
-        this._hideonmax = this.addBoolean(
-            "Hide if there are no maximized windows",
-            WA_HIDEONNOMAX);
-        // enable with onlymax
-        this._onlymax.connect('notify::active', Lang.bind(this, function () {
-            this._hideonmax.set_sensitive(this._onlymax.active);
+            let label2 = new Gtk.Label({
+                label: label + ':'
+            });
+            let explan = new Gtk.Label({
+                label: explanations[type],
+                hexpand: true,
+                halign: Gtk.Align.START
+            });
+            label2.set_alignment(0, 0);
+            explan.set_alignment(0, 0);
+            explan.set_line_wrap(true);
+            grid.attach(label2, 0, grid._rownum, 1, 1);
+            grid.attach(explan, 1, grid._rownum, 1, 1);
+            grid._rownum++;
+        }
+        item.set_active_id(this._settings.get_enum(WA_SHOWBUTTONS).toString());
+        item.connect('changed', Lang.bind(this, function (combo) {
+            let value = parseInt(combo.get_active_id(), 10);
+            if (value !== undefined &&
+                this._settings.get_enum(WA_SHOWBUTTONS) !== value) {
+                this._settings.set_enum(WA_SHOWBUTTONS, value);
+            }
         }));
-        this._hideonmax.set_sensitive(this._onlymax.active);
-
+        expander.add(grid);
+        this.addItem(expander);
     },
 
     /* insert controls for moving buttons */

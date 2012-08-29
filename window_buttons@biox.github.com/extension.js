@@ -1,11 +1,14 @@
 /*global log, global */ // <-- for jshint
-// Copyright (C) 2011 Josiah Messiah (josiah.messiah@gmail.com)
-// Other contributors:
-// Maintainer: mathematicalcoffee <mathematical.coffee@gmail.com>
-// Patches contributed by:
-// - barravi (GNOME 3.4 compatibility)
-// - tiper (GNOME 3.4 compatibility)
-// Licence: GPLv3
+/* Window Button GNOME shell extension.
+ * Copyright (C) 2011 Josiah Messiah (josiah.messiah@gmail.com)
+ * Licence: GPLv3
+ *
+ * Contributors:
+ * - Josiah Messiah <josiah.messiah@gmail.com>
+ * - barravi <https://github.com/barravi>
+ * - tiper <https://github.com/tiper>
+ * - mathematical.coffee <mathematical.coffee@gmail.com>
+ */
 
 const Lang = imports.lang;
 const St = imports.gi.St;
@@ -31,23 +34,28 @@ const WA_PINCH = Prefs.WA_PINCH;
 const WA_ORDER = Prefs.WA_ORDER;
 const WA_THEME = Prefs.WA_THEME;
 const WA_DO_METACITY = Prefs.WA_DO_METACITY;
-const WA_ONLYMAX = Prefs.WA_ONLYMAX;
-const WA_HIDEONNOMAX = Prefs.WA_HIDEONNOMAX;
 const WA_LEFTBOX = Prefs.WA_LEFTBOX;
 const WA_LEFTPOS = Prefs.WA_LEFTPOS;
 const WA_RIGHTPOS = Prefs.WA_RIGHTPOS;
 const WA_RIGHTBOX = Prefs.WA_RIGHTBOX;
+const WA_SHOWBUTTONS = Prefs.WA_SHOWBUTTONS;
 
 // Keep enums in sync with GSettings schemas
 const PinchType = Prefs.PinchType;
 const Boxes = Prefs.Boxes;
+const ShowButtonsWhen = Prefs.ShowButtonsWhen;
 
 // Laziness
 Meta.MaximizeFlags.BOTH = (Meta.MaximizeFlags.HORIZONTAL |
     Meta.MaximizeFlags.VERTICAL);
 
 const _ORDER_DEFAULT = ":minimize,maximize,close";
+const DCONF_META_THEME_KEY = 'org.gnome.desktop.wm.preferences';
+const GCONF_META_THEME_KEY = '/apps/metacity/general/theme';
 
+/********************
+ * Helper functions *
+ ********************/
 function warn(msg) {
     log("WARNING [Window Buttons]: " + msg);
 }
@@ -122,6 +130,9 @@ function getPosition(actor, position, nvisible) {
     }
 }
 
+/************************
+ * Window Buttons class *
+ ************************/
 function WindowButtons() {
     this._init();
 }
@@ -145,21 +156,39 @@ WindowButtons.prototype = {
             doMetacity = this._settings.get_boolean(WA_DO_METACITY);
 
         if (doMetacity) {
-            // GTK theme name (e.g. Adwaita - we don't have a style for that
-            // yet!)
-            // theme = new imports.gi.Gio.Settings({
-            //     schema: "org.gnome.desktop.interface"
-            // }).get_string("gtk-theme");
-            // Get Mutter / Metacity theme name
-            theme = GConf.Client.get_default().get_string(
-                    "/apps/metacity/general/theme");
+            // GTK theme name:
+            // theme = Gio.Settings.new('org.gnome.desktop.interface'
+            // ).get_string('gtk-theme')
+
+            // Get Mutter / Metacity theme name.
+            // try dconf (GNOME 3.4) first. NOTE: on GNOME 3.2 this will
+            // segfault if the schema is not installed, hence we use
+            // Gio.Settings.list_schemas():
+            theme = Gio.Settings.list_schemas().filter(function (k) {
+                return k === DCONF_META_THEME_KEY;
+            });
+            if (theme.length) {
+                // dconf, GNOME 3.4
+                theme = Gio.Settings.new(DCONF_META_THEME_KEY);
+                theme = theme.get_string('theme');
+            } else {
+                // gconf, GNOME 3.2
+                // GNOME 3.2:
+                theme = GConf.Client.get_default().get_string(
+                        GCONF_META_THEME_KEY);
+            }
         } else {
             theme = this._settings.get_string(WA_THEME);
+        }
+
+        // if still no theme, use the old one or 'default'
+        if (!theme) {
+            warn("Could not load the requested theme.");
+            theme = oldtheme || 'default';
         }
         if (theme === oldtheme) {
             return;
         }
-        // log('_loadTheme: %s -> %s'.format(oldtheme.toString(), theme));
 
         // Get CSS of new theme, and check it exists, falling back to 'default'
         let cssPath = GLib.build_filenamev([extensionPath, 'themes', theme,
@@ -208,9 +237,9 @@ WindowButtons.prototype = {
             order = GConf.Client.get_default().get_string(
                     "/apps/metacity/general/button_layout");
         } else if (pinch === PinchType.GNOME_SHELL) {
-            order = new Gio.Settings({
-                schema: 'org.gnome.shell.overrides'
-            }).get_string('button-layout');
+            order = Gio.Settings.new(
+                'org.gnome.shell.overrides'
+            ).get_string('button-layout');
         }
         /* if order is null because keys don't exist, get them from settings
          * (PinchType.CUSTOM) */
@@ -277,129 +306,155 @@ WindowButtons.prototype = {
         }
     },
 
+    /*
+     * ShowButtonsWhen.ALWAYS, WINDOWS, WINDOWS_VISIBLE,
+     * CURRENT_WINDOW_MAXIMIZED, ANY_WINDOW_MAXIMIZED
+     */
     _windowChanged: function () {
-        let hideonnomax = this._settings.get_boolean(WA_HIDEONNOMAX),
-            onlymax = this._settings.get_boolean(WA_ONLYMAX);
-        if (onlymax && hideonnomax) {
-            let activeWindow = global.display.focus_window;
-            if (this._upperMax()) {
-                this.leftActor.show();
-                this.rightActor.show();
-            } else {
-                this.leftActor.hide();
-                this.rightActor.hide();
+        let workspace = global.screen.get_active_workspace(),
+            windows = workspace.list_windows().filter(function (w) {
+                return w.get_window_type() !== Meta.WindowType.DESKTOP;
+            }),
+            show = false;
+
+        /* easy cases: ShowButtonsWhen.ALWAYS (always show), and
+         * ShowButtonsWhen.WINDOWS (just check windows.length)
+         */
+        switch (this._settings.get_enum(WA_SHOWBUTTONS)) {
+        // show whenever there are windows
+        case ShowButtonsWhen.WINDOWS:
+            show = windows.length;
+            break;
+       
+        // show whenever there are non-minimized windows
+        case ShowButtonsWhen.WINDOWS_VISIBLE:
+            for (let i = 0; i < windows.length; ++i) {
+                if (!windows[i].minimized) {
+                    show = true;
+                    break;
+                }
             }
+            break;
+
+        // show iff current window is (fully) maximized
+        case ShowButtonsWhen.CURRENT_WINDOW_MAXIMIZED:
+            let activeWindow = global.display.focus_window;
+            show = (activeWindow ?
+                    activeWindow.get_maximized() === Meta.MaximizeFlags.BOTH :
+                    false);
+            break;
+
+        // show iff *any* window is (fully) maximized
+        case ShowButtonsWhen.ANY_WINDOW_MAXIMIZED:
+            for (let i = 0; i < windows.length; ++i) {
+                if (windows[i].get_maximized() === Meta.MaximizeFlags.BOTH) {
+                    show = true;
+                    break;
+                }
+            }
+            break;
+
+        // show all the time
+        case ShowButtonsWhen.ALWAYS:
+            /* falls through */
+        default:
+            show = true;
+            break;
         }
+
+        // if the actors already match `show` don't do anything.
+        if (show === this.leftActor.visible &&
+                show === this.rightActor.visible) {
+            return false;
+        }
+        if (show) {
+            this.leftActor.show();
+            this.rightActor.show();
+        } else {
+            this.leftActor.hide();
+            this.rightActor.hide();
+        }
+        return false;
     },
 
-    // Return the uppermost maximized window from the current workspace, or
-    // false is there is none
-    _upperMax: function () {
-        let workspace = global.screen.get_active_workspace();
-        let windows = workspace.list_windows();
-        let maxwin = false;
-        for (let i = windows.length - 1; i >= 0; --i) {
-            if (windows[i].get_maximized() === Meta.MaximizeFlags.BOTH &&
-                    !windows[i].minimized) {
-                maxwin = windows[i];
-                break;
+    // Returns the window to control.
+    // This is:
+    // * the currently focused window.
+    // * onlymax is TRUE, in which case it is the uppermost *maximized*
+    //   window, whether or not this is active or not. If there are no
+    //   maximized windows, it defaults to:
+    // * the currently focused window.
+    // * if all else fails, we return the uppermost window.
+    _getWindowToControl: function () {
+        let win = global.display.focus_window,
+            workspace = global.screen.get_active_workspace(),
+            windows = workspace.list_windows().filter(function (w) {
+                return w.get_window_type() !== Meta.WindowType.DESKTOP;
+            });
+
+        if (win === null || win.get_window_type() === Meta.WindowType.DESKTOP) {
+            // No windows are active, control the uppermost window on the
+            // current workspace
+            if (windows.length) {
+                win = windows[windows.length - 1].get_meta_window();
             }
         }
-        return maxwin;
+
+        // Incorporate onlymax behaviour: get the uppermost maximized window
+        if (this._settings.get_enum(WA_SHOWBUTTONS) ===
+                ShowButtonsWhen.ANY_WINDOW_MAXIMIZED) {
+            let i = windows.length;
+            while (i--) {
+                if (windows[i].get_maximized() === Meta.MaxmizeFlags.BOTH &&
+                        !windows[i].minimized) {
+                    win = windows[i];
+                    break;
+                }
+            }
+        }
+
+        return win;
     },
 
     _minimize: function () {
-        let activeWindow = global.display.focus_window,
-            onlymax = this._settings.get_boolean(WA_ONLYMAX);
-        if (activeWindow === null || activeWindow.get_title() === "Desktop") {
-            // No windows are active, minimize the uppermost window
-            let winactors = global.get_window_actors();
-            let uppermost = winactors[winactors.length - 1].get_meta_window();
-            uppermost.minimize();
+        let win = this._getWindowToControl();
+        if (!win) {
+            return;
+        }
+
+        // minimize/unmaximize
+        if (win.minimized) {
+            win.unminimize();
+            win.activate(global.get_current_time());
         } else {
-            // If the active window is maximized, minimize it
-            if (activeWindow.get_maximized() === Meta.MaximizeFlags.BOTH) {
-                activeWindow.minimize();
-            // If the active window is not maximized, minimize the uppermost
-            // maximized window if the option to only control maximized windows
-            // is set
-            } else if (onlymax) {
-                let uppermax = this._upperMax();
-                if (uppermax) {
-                    uppermax.minimize();
-                    activeWindow.activate(global.get_current_time());
-                } else {
-                    // If no maximized windows, minimize the active window
-                    activeWindow.minimize();
-                }
-            // Otherwise minimize the active window
-            } else {
-                activeWindow.minimize();
-            }
+            win.minimize();
         }
     },
 
     _maximize: function () {
-        let activeWindow = global.display.focus_window,
-            onlymax = this._settings.get_boolean(WA_ONLYMAX);
-        if (activeWindow === null || activeWindow.get_title() === "Desktop") {
-            // No windows are active, maximize the uppermost window
-            let winactors = global.get_window_actors();
-            let uppermost = winactors[winactors.length - 1].get_meta_window();
-            uppermost.maximize(Meta.MaximizeFlags.BOTH);
-            // May as well activate it too...
-            uppermost.activate(global.get_current_time());
-        } else {
-            // If the active window is maximized, unmaximize it
-            if (activeWindow.get_maximized() === Meta.MaximizeFlags.BOTH) {
-                activeWindow.unmaximize(Meta.MaximizeFlags.BOTH);
-            // If the active window is not maximized, unmaximize the uppermost
-            // maximized window if the option to only control maximized windows
-            // is set
-            } else if (onlymax) {
-                let uppermax = this._upperMax();
-                if (uppermax) {
-                    uppermax.unmaximize(Meta.MaximizeFlags.BOTH);
-                    activeWindow.activate(global.get_current_time());
-                } else {
-                    activeWindow.maximize(Meta.MaximizeFlags.BOTH);
-                }
-            // Otherwise unmaximize the active window
-            } else {
-                activeWindow.maximize(Meta.MaximizeFlags.BOTH);
-            }
+        let win = this._getWindowToControl();
+        if (!win) {
+            return;
         }
+
+        // maximize/unmaximize. We count half-maximized as not maximized & will
+        // fully maximize it.
+        if (win.get_maximized() === Meta.MaximizeFlags.BOTH) {
+            win.unmaximize(Meta.MaximizeFlags.BOTH);
+        } else {
+            win.maximize(Meta.MaximizeFlags.BOTH);
+        }
+        win.activate(global.get_current_time());
     },
 
     _close: function () {
-        let activeWindow = global.display.focus_window,
-            onlymax = this._settings.get_boolean(WA_ONLYMAX);
-        if (activeWindow === null || activeWindow.get_title() === "Desktop") {
-            // No windows are active, close the uppermost window
-            let winactors = global.get_window_actors();
-            let uppermost = winactors[winactors.length - 1].get_meta_window();
-            uppermost.delete(global.get_current_time());
-        } else {
-            // If the active window is maximized, close it
-            if (activeWindow.get_maximized() === Meta.MaximizeFlags.BOTH) {
-                activeWindow.delete(global.get_current_time());
-            // If the active window is not maximized, close the uppermost
-            // maximized window if the option to only control maximized windows
-            // is set
-            } else if (onlymax) {
-                let uppermax = this._upperMax();
-                if (uppermax) {
-                    uppermax.delete(global.get_current_time());
-                    activeWindow.activate(global.get_current_time());
-                } else {
-                    // If no maximized windows, close the active window
-                    activeWindow.delete(global.get_current_time());
-                }
-            // Otherwise close the active window
-            } else {
-                activeWindow.delete(global.get_current_time());
-            }
+        let win = this._getWindowToControl();
+        if (!win) {
+            return;
         }
+
+        // close it.
+        win.delete(global.get_current_time());
     },
 
     _onPositionChange: function (settings, changedKey, positionKey, boxKey) {
@@ -472,6 +527,71 @@ WindowButtons.prototype = {
         this._locked = false;
     },
 
+    _connectSignals: function () {
+        let showbuttons = this._settings.get_enum(WA_SHOWBUTTONS);
+
+        // if we are always showing the buttons then we don't have to listen
+        // to window events
+        if (showbuttons === ShowButtonsWhen.ALWAYS) {
+            return;
+        }
+
+        // for mode WINDOWS we only need to listen to map and destroy and
+        // switch-workspace (we just want to detect whether there are any
+        // windows at all on the WS)
+        this._wmSignals.push(global.window_manager.connect('switch-workspace',
+            Lang.bind(this, this._windowChanged)));
+        this._wmSignals.push(global.window_manager.connect('map',
+			Lang.bind(this, this._windowChanged)));
+        // note: 'destroy' needs a delay for .list_windows() report correctly
+        this._wmSignals.push(global.window_manager.connect('destroy',
+			Lang.bind(this, function () {
+                Mainloop.idle_add(Lang.bind(this, this._windowChanged));
+            })));
+        if (showbuttons === ShowButtonsWhen.WINDOWS) {
+            return;
+        }
+
+        // for WINDOWS_VISIBLE we additionally need to listen to min (unmin
+        // is covered by map)
+        this._wmSignals.push(global.window_manager.connect('minimize',
+			Lang.bind(this, this._windowChanged)));
+
+        if (showbuttons === ShowButtonsWhen.WINDOWS_VISIBLE) {
+            return;
+        }
+
+        // for any_window_maximized we additionaly have to be aware of max/unmax
+        // events.
+        this._wmSignals.push(global.window_manager.connect('maximize',
+			Lang.bind(this, this._windowChanged)));
+        this._wmSignals.push(global.window_manager.connect('unmaximize',
+			Lang.bind(this, this._windowChanged)));
+
+        if (showbuttons === ShowButtonsWhen.ANY_WINDOW_MAXIMIZED) {
+            return;
+        }
+
+        // for current_window_maximized we additinally want focus-app
+        // NOTE: this fires twice per focus-event, the first with activeWindow
+        // being `null` and the second with it being the newly-focused window.
+        // (Unless there is no newly-focused window).
+        // What a waste!
+        this._windowTrackerSignal = Shell.WindowTracker.get_default().connect(
+                'notify::focus-app', Lang.bind(this, this._windowChanged));
+    },
+
+    _disconnectSignals: function () {
+        if (this._windowTrackerSignal) {
+            Shell.WindowTracker.get_default().disconnect(this._windowTrackerSignal);
+        }
+        for (let i = 0; i < this._wmSignals; ++i) {
+            global.window_manager.disconnect(this._wmSignals.pop());
+        }
+        this._wmSignals = [];
+        this._windowTrackerSignal = 0;
+    },
+
     enable: function () {
         //Create boxes for the buttons
         this.rightActor = new St.Bin({ style_class: 'box-bin'});
@@ -497,8 +617,12 @@ WindowButtons.prototype = {
                 Lang.bind(this, this._display));
         this._settings.connect('changed::' + WA_PINCH,
                 Lang.bind(this, this._display));
-        this._settings.connect('changed::' + WA_HIDEONNOMAX,
-                Lang.bind(this, this._windowChanged));
+        this._settings.connect('changed::' + WA_SHOWBUTTONS,
+                Lang.bind(this, function () {
+                    this._disconnectSignals();
+                    this._connectSignals();
+                    this._windowChanged();
+                }));
 
         this._settings.connect('changed::' + WA_LEFTPOS, Lang.bind(this,
                     this._onPositionChange, WA_LEFTPOS, WA_LEFTBOX));
@@ -512,20 +636,8 @@ WindowButtons.prototype = {
 
         // Connect to window change events
         this._wmSignals = [];
-        this._windowTrackerSignal = Shell.WindowTracker.get_default().connect(
-                'notify::focus-app', Lang.bind(this, this._windowChanged));
-        this._wmSignals.push(global.window_manager.connect('switch-workspace',
-            Lang.bind(this, this._windowChanged)));
-        this._wmSignals.push(global.window_manager.connect('minimize',
-			Lang.bind(this, this._windowChanged)));
-        this._wmSignals.push(global.window_manager.connect('maximize',
-			Lang.bind(this, this._windowChanged)));
-        this._wmSignals.push(global.window_manager.connect('unmaximize',
-			Lang.bind(this, this._windowChanged)));
-        this._wmSignals.push(global.window_manager.connect('map',
-			Lang.bind(this, this._windowChanged)));
-        this._wmSignals.push(global.window_manager.connect('destroy',
-			Lang.bind(this, this._windowChanged)));
+        this._windowTrackerSignal = 0;
+        this._connectSignals();
 
         let leftbox = this._settings.get_enum(WA_LEFTBOX),
             rightbox = this._settings.get_enum(WA_RIGHTBOX),
@@ -536,6 +648,8 @@ WindowButtons.prototype = {
         this._rightContainer = getBox(rightbox);
 
         // A delay is needed to let all the other icons load first.
+        // Also, show or hide buttons after a delay to let all the windows
+        // be properly "there".
         Mainloop.idle_add(Lang.bind(this, function () {
             this._leftContainer.insert_child_at_index(this.leftActor,
                     getPosition(this._leftContainer, leftpos,
@@ -543,11 +657,13 @@ WindowButtons.prototype = {
             this._rightContainer.insert_child_at_index(this.rightActor,
                     getPosition(this._rightContainer,
                         rightpos, getNChildren(this._rightContainer)));
+
+            // Show or hide buttons
+            this._windowChanged();
+
             return false;
         }));
 
-        // Show or hide buttons
-        this._windowChanged();
     },
 
     disable: function () {
@@ -556,10 +672,7 @@ WindowButtons.prototype = {
 
         /* disconnect all signals */
         this._settings.disconnectAll();
-        Shell.WindowTracker.get_default().disconnect(this._windowTrackerSignal);
-        for (let i = 0; i < this._wmSignals; ++i) {
-            global.window_manager.disconnect(this._wmSignals.pop());
-        }
+        this._disconnectSignals();
     }
 };
 

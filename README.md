@@ -76,17 +76,16 @@ Themes are stored in the `themes` directory of this extension, for example `~/.l
 You must set the `theme` to one of these names.
 For further details see the 'Themes' section below.
 
-### Controlling maximized windows
-By default, Window Buttons will control the *current active* window.
+### When the buttons appear.
+By default, the window buttons will be visible all the time *unless* you have no windows on your workspace, in which case they hide.
 
-It is possible to set Window Buttons to prioritise controlling maximized windows.
-That means that if you press (say) 'minimize', the window that will be minimized will be the *uppermost maximized window*, which is _not necessarily the currently focused window_!
+You can change this with the `showbuttons` setting.
 
-If there are no maximized windows then the buttons will affect the currently focused window.
-
-If you want this (somewhat confusing?) behaviour, then set the setting `onlymax` to `true`.
-
-Furthermore, you can have the buttons only be visible when there is a maximized window to control - if you want this, set `hideonmax` to `true`.
+* `ShowButtonsWhen.ALWAYS` means the buttons will be shown all the time, even if there are no windows on the workspace.
+* `ShowButtonsWhen.WINDOWS` (the default) means the buttons will be shown if and only if there are windows on the workspace.
+* `ShowButtonsWhen.WINDOWS_VISIBLE` means the buttons will be shown if and only if there are *visible* (i.e. non-minimized) windows on the workspace.
+* `ShowButtonsWhen.CURRENT_WINDOW_MAXIMIZED` means the buttons will be shown if and only if the current window is maximized.
+* `ShowButtonsWhen.ANY_WINDOW_MAXIMIZED` means the buttons will be shown if and only if there are *any* *maximized* windows on the workspace. In this case, clicking on a window button will control the **uppermost maximized window** which is **not necesserily the current window!**.
 
 ### Positioning the buttons in the panel
 Recall you can position the left and right groups of buttons separately (determined by the colon ':' in `order`).
@@ -153,6 +152,15 @@ for each button, and the picture should have the symbol for the button in it (i.
 
 See `themes/default/style.css` for more information.
 
+Changelog
+---------
+v3/v4 on e.g.o:
+
+* Add hover style for the 'default' theme (#4)
+* Fix bug in `do-metacity` option preventing extension enablement on 3.4.1 (#3)
+* "Maximized" windows means fully-maximized (not half-maximized) (#1)
+* Added more options for when the buttons show (#2)
+
 To-do
 -----
 
@@ -164,5 +172,5 @@ Version map
 -----------
 For 'version', see 'version' in metadata.json (this is the version of the extension as it appears/is planned for on extensions.gnome.org).
 
-- v1: GNOME 3.2-compatible.
-- v2: GNOME 3.4-compatible.
+- v1, v3: GNOME 3.2-compatible.
+- v2, v4: GNOME 3.4-compatible.

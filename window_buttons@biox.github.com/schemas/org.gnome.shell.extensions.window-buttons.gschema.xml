@@ -2,16 +2,24 @@
 <schemalist gettext-domain="gnome-shell-extensions">
   
   <enum id='org.gnome.shell.extensions.window-buttons.PinchType'>
-    <value value='0' nick='Custom'/>
-    <value value='1' nick='Mutter'/>
-    <value value='2' nick='Metacity'/>
-    <value value='3' nick='GNOME-shell'/>
+    <value value='0' nick='custom'/>
+    <value value='1' nick='mutter'/>
+    <value value='2' nick='metacity'/>
+    <value value='3' nick='gnome-shell'/>
   </enum>
 
   <enum id='org.gnome.shell.extensions.window-buttons.BoxType'>
-    <value value='0' nick='Left'/>
-    <value value='1' nick='Right'/>
-    <value value='2' nick='Middle'/>
+    <value value='0' nick='left'/>
+    <value value='1' nick='right'/>
+    <value value='2' nick='middle'/>
+  </enum>
+
+  <enum id='org.gnome.shell.extensions.window-buttons.ShowButtonsWhen'>
+    <value value='0' nick='always'/>
+    <value value='1' nick='windows'/>
+    <value value='2' nick='windows-visible'/>
+    <value value='3' nick='current-window-maximized'/>
+    <value value='4' nick='any-window-maximized'/>
   </enum>
 
   <schema path="/org/gnome/shell/extensions/window-buttons/" id="org.gnome.shell.extensions.window-buttons">
@@ -29,9 +37,9 @@
     </key>
     
     <key name="pinch" enum="org.gnome.shell.extensions.window-buttons.PinchType">
-      <default>'Mutter'</default>
+      <default>'mutter'</default>
       <summary>Use custom/mutter/metacity order</summary>
-      <description>Use custom button order or the pinch order settings from mutter/metacity</description>
+      <description>Use custom button order or the pinch order settings from mutter/metacity. Use 'custom' to use the custom button order in the 'order' key, 'mutter' to use mutter's settings (/desktop/gnome/shell/windows/button_layout), 'metacity' to use metacity's settings (/apps/metacity/general/button_layout), 'gnome-shell' to use GNOME-shell's settings (org.gnome.shell.overrides.button-layout).</description>
     </key>
     
     <key type="b" name="do-metacity">
@@ -41,15 +49,15 @@
     </key>
 
     <key name="box-left" enum="org.gnome.shell.extensions.window-buttons.BoxType">
-        <default>'Left'</default>
+        <default>'left'</default>
         <summary>Box to put left buttons in</summary>
-        <description>'Left' : buttons placed in the left box (activities + window title button); 'Right': buttons placed in the right box (status area); 'Middle': buttons placed in the centre box (date/time, unless you have (e.g.) Frippery Move Clock extension, in which case the centre box is empty and in between the left and right boxes)</description>
+        <description>'left' : buttons placed in the left box (activities + window title button); 'right': buttons placed in the right box (status area); 'middle': buttons placed in the centre box (date/time, unless you have (e.g.) Frippery Move Clock extension, in which case the centre box is empty and in between the left and right boxes)</description>
     </key>
 
     <key name="box-right" enum="org.gnome.shell.extensions.window-buttons.BoxType">
-        <default>'Right'</default>
+        <default>'right'</default>
         <summary>Box to put right buttons in</summary>
-        <description>'Left' : buttons placed in the left box (activities + window title button); 'Right': buttons placed in the right box (status area); 'Middle': buttons placed in the centre box (date/time, unless you have (e.g.) Frippery Move Clock extension, in which case the centre box is empty and in between the left and right boxes)</description>
+        <description>'left' : buttons placed in the left box (activities + window title button); 'right': buttons placed in the right box (status area); 'middle': buttons placed in the centre box (date/time, unless you have (e.g.) Frippery Move Clock extension, in which case the centre box is empty and in between the left and right boxes)</description>
     </key>
 
     <key type="i" name="position-left">
@@ -75,6 +83,11 @@
       <summary>Hide if there are no maximized windows</summary>
       <description>Hide the window buttons if there are no maximized windows to control. Only works if controling only maximized windows. Only has any effect is the 'onlymax' option is set.</description>
     </key>
-    
+
+    <key name="show-buttons" enum="org.gnome.shell.extensions.window-buttons.ShowButtonsWhen">
+      <default>'windows'</default>
+      <summary>When to show window buttons.</summary>
+      <description>When to show the window buttons. 'always': show them all the time. 'windows' (default): show them when there are windows (hide when there are no windows at all); 'windows-visible': show them when there are *visible* windows (hide when there are no non-maximized windows); 'current-window-maximized': show buttons only when the current window is maximized; 'any-window-maximized': show buttons when *any* window is maximized (and control the uppermost maximized window, whether or not that is the *current* active window!).</description>
+    </key>
   </schema>
 </schemalist>
