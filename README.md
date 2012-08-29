@@ -21,7 +21,7 @@ Note - the [mathematicalcoffee fork](https://github.com/mathematicalcoffee/Gnome
 
 Installation
 ------------
-(NEW: hopefully, you can install from extensions.gnome.org).
+**NEW**: Install it from [extensions.gnome.org](https://extensions.gnome.org/extension/426/window-buttons/).
 
 ### GNOME 3.4
 Either download the .zip file from the [Downloads page](https://github.com/biox/Gnome-Shell-Window-Buttons-Extension/downloads) or checkout the code to the `gnome3.4` branch.
