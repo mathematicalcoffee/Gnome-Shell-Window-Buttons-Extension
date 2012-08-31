@@ -530,6 +530,15 @@ WindowButtons.prototype = {
     _connectSignals: function () {
         let showbuttons = this._settings.get_enum(WA_SHOWBUTTONS);
 
+        this._ID_overviewShowing = Main.overview.connect('shown', Lang.bind(this, Lang.bind(this, function() {
+            this.leftActor.hide();
+            this.rightActor.hide();
+        })));
+        this._ID_overviewHiding = Main.overview.connect('hidden', Lang.bind(this, Lang.bind(this, function() {
+            this.leftActor.show();
+            this.rightActor.show();
+        })));
+
         // if we are always showing the buttons then we don't have to listen
         // to window events
         if (showbuttons === ShowButtonsWhen.ALWAYS) {
@@ -582,6 +591,9 @@ WindowButtons.prototype = {
     },
 
     _disconnectSignals: function () {
+        Main.overview.disconnect(this._ID_overviewShowing);
+        Main.overview.disconnect(this._ID_overviewHiding);
+
         if (this._windowTrackerSignal) {
             Shell.WindowTracker.get_default().disconnect(this._windowTrackerSignal);
         }
