@@ -5,7 +5,7 @@ Supports custom button layouts and css theming!
 
 <table>
   <tr>
-    <td><img src="https://github.com/mathematicalcoffee/Gnome-Shell-Window-Buttons-Extension/raw/master/screenshot.png" alt="Screenshot" /></td>
+    <td><img src="https://github.com/cfclavijo/Gnome-Shell-Window-Buttons-Extension/blob/gnome3.4/screenshot.png" alt="Screenshot" /></td>
   </tr>
   <tr>
     <td>Current (31/Aug/2012) themes, top-to-bottom: default, Ambiance, Ambiance-Blue, Radiance, Zukwito, Zukwito-Dark</td>
