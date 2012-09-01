@@ -362,6 +362,11 @@ WindowButtons.prototype = {
             break;
         }
 
+        // if overview is active won't show the buttons
+        if(Main.overview.visible){
+            show = false;
+        }
+
         // if the actors already match `show` don't do anything.
         if (show === this.leftActor.visible &&
                 show === this.rightActor.visible) {
@@ -530,14 +535,8 @@ WindowButtons.prototype = {
     _connectSignals: function () {
         let showbuttons = this._settings.get_enum(WA_SHOWBUTTONS);
 
-        this._ID_overviewShowing = Main.overview.connect('shown', Lang.bind(this, Lang.bind(this, function() {
-            this.leftActor.hide();
-            this.rightActor.hide();
-        })));
-        this._ID_overviewHiding = Main.overview.connect('hidden', Lang.bind(this, Lang.bind(this, function() {
-            this.leftActor.show();
-            this.rightActor.show();
-        })));
+        this.overviewShowing = Main.overview.connect('shown', Lang.bind(this, this._windowChanged));
+        this.overviewHiding = Main.overview.connect('hidden', Lang.bind(this, this._windowChanged));
 
         // if we are always showing the buttons then we don't have to listen
         // to window events
@@ -591,8 +590,8 @@ WindowButtons.prototype = {
     },
 
     _disconnectSignals: function () {
-        Main.overview.disconnect(this._ID_overviewShowing);
-        Main.overview.disconnect(this._ID_overviewHiding);
+        Main.overview.disconnect(this.overviewShowing);
+        Main.overview.disconnect(this.overviewHiding);
 
         if (this._windowTrackerSignal) {
             Shell.WindowTracker.get_default().disconnect(this._windowTrackerSignal);
