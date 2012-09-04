@@ -8,6 +8,7 @@
  * - barravi <https://github.com/barravi>
  * - tiper <https://github.com/tiper>
  * - mathematical.coffee <mathematical.coffee@gmail.com>
+ * - cjclavijo
  *
  * Note: this version (for GNOME 3.2 distributed by extensions.gnome.org) does
  * not use gsettings like the old github version did, because that had to be
