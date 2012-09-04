@@ -8,6 +8,7 @@
  * - barravi <https://github.com/barravi>
  * - tiper <https://github.com/tiper>
  * - mathematical.coffee <mathematical.coffee@gmail.com>
+ * - cfclavijo
  */
 
 const Lang = imports.lang;
@@ -39,6 +40,7 @@ const WA_LEFTPOS = Prefs.WA_LEFTPOS;
 const WA_RIGHTPOS = Prefs.WA_RIGHTPOS;
 const WA_RIGHTBOX = Prefs.WA_RIGHTBOX;
 const WA_SHOWBUTTONS = Prefs.WA_SHOWBUTTONS;
+const WA_HIDEINOVERVIEW = Prefs.WA_HIDEINOVERVIEW;
 
 // Keep enums in sync with GSettings schemas
 const PinchType = Prefs.PinchType;
@@ -145,6 +147,7 @@ WindowButtons.prototype = {
         this._settings = Convenience.getSettings();
 
         this._wmSignals = [];
+        this._overviewSignals = [];
         this._windowTrackerSignal = 0;
         this._locked = false;
     },
@@ -317,49 +320,52 @@ WindowButtons.prototype = {
             }),
             show = false;
 
-        /* easy cases: ShowButtonsWhen.ALWAYS (always show), and
-         * ShowButtonsWhen.WINDOWS (just check windows.length)
-         */
-        switch (this._settings.get_enum(WA_SHOWBUTTONS)) {
-        // show whenever there are windows
-        case ShowButtonsWhen.WINDOWS:
-            show = windows.length;
-            break;
-       
-        // show whenever there are non-minimized windows
-        case ShowButtonsWhen.WINDOWS_VISIBLE:
-            for (let i = 0; i < windows.length; ++i) {
-                if (!windows[i].minimized) {
-                    show = true;
-                    break;
+        // if overview is active won't show the buttons
+        if (this._settings.get_boolean(WA_HIDEINOVERVIEW) &&
+                Main.overview.visible) {
+            show = false;
+        } else {
+            switch (this._settings.get_enum(WA_SHOWBUTTONS)) {
+            // show whenever there are windows
+            case ShowButtonsWhen.WINDOWS:
+                show = windows.length;
+                break;
+           
+            // show whenever there are non-minimized windows
+            case ShowButtonsWhen.WINDOWS_VISIBLE:
+                for (let i = 0; i < windows.length; ++i) {
+                    if (!windows[i].minimized) {
+                        show = true;
+                        break;
+                    }
                 }
-            }
-            break;
+                break;
 
-        // show iff current window is (fully) maximized
-        case ShowButtonsWhen.CURRENT_WINDOW_MAXIMIZED:
-            let activeWindow = global.display.focus_window;
-            show = (activeWindow ?
-                    activeWindow.get_maximized() === Meta.MaximizeFlags.BOTH :
-                    false);
-            break;
+            // show iff current window is (fully) maximized
+            case ShowButtonsWhen.CURRENT_WINDOW_MAXIMIZED:
+                let activeWindow = global.display.focus_window;
+                show = (activeWindow ?
+                        activeWindow.get_maximized() === Meta.MaximizeFlags.BOTH :
+                        false);
+                break;
 
-        // show iff *any* window is (fully) maximized
-        case ShowButtonsWhen.ANY_WINDOW_MAXIMIZED:
-            for (let i = 0; i < windows.length; ++i) {
-                if (windows[i].get_maximized() === Meta.MaximizeFlags.BOTH) {
-                    show = true;
-                    break;
+            // show iff *any* window is (fully) maximized
+            case ShowButtonsWhen.ANY_WINDOW_MAXIMIZED:
+                for (let i = 0; i < windows.length; ++i) {
+                    if (windows[i].get_maximized() === Meta.MaximizeFlags.BOTH) {
+                        show = true;
+                        break;
+                    }
                 }
-            }
-            break;
+                break;
 
-        // show all the time
-        case ShowButtonsWhen.ALWAYS:
-            /* falls through */
-        default:
-            show = true;
-            break;
+            // show all the time
+            case ShowButtonsWhen.ALWAYS:
+                /* falls through */
+            default:
+                show = true;
+                break;
+            }
         }
 
         // if the actors already match `show` don't do anything.
@@ -530,6 +536,14 @@ WindowButtons.prototype = {
     _connectSignals: function () {
         let showbuttons = this._settings.get_enum(WA_SHOWBUTTONS);
 
+        if (this._settings.get_boolean(WA_HIDEINOVERVIEW)) {
+            // listen to the overview showing & hiding.
+            this._overviewSignals.push(Main.overview.connect('shown',
+                Lang.bind(this, this._windowChanged)));
+            this._overviewSignals.push(Main.overview.connect('hidden',
+                Lang.bind(this, this._windowChanged)));
+        }
+
         // if we are always showing the buttons then we don't have to listen
         // to window events
         if (showbuttons === ShowButtonsWhen.ALWAYS) {
@@ -588,7 +602,11 @@ WindowButtons.prototype = {
         for (let i = 0; i < this._wmSignals; ++i) {
             global.window_manager.disconnect(this._wmSignals.pop());
         }
+        for (let i = 0; i < this._overviewSignals; ++i) {
+            Main.overview.disconnect(this._overviewSignals.pop());
+        }
         this._wmSignals = [];
+        this._overviewSignals = [];
         this._windowTrackerSignal = 0;
     },
 
@@ -618,6 +636,12 @@ WindowButtons.prototype = {
         this._settings.connect('changed::' + WA_PINCH,
                 Lang.bind(this, this._display));
         this._settings.connect('changed::' + WA_SHOWBUTTONS,
+                Lang.bind(this, function () {
+                    this._disconnectSignals();
+                    this._connectSignals();
+                    this._windowChanged();
+                }));
+        this._settings.connect('changed::' + WA_HIDEINOVERVIEW,
                 Lang.bind(this, function () {
                     this._disconnectSignals();
                     this._connectSignals();
