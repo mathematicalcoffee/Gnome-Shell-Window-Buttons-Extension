@@ -27,6 +27,7 @@ const WA_LEFTPOS = 'position-left';
 const WA_RIGHTBOX = 'box-right';
 const WA_RIGHTPOS = 'position-right';
 const WA_SHOWBUTTONS = 'show-buttons';
+const WA_HIDEINOVERVIEW = 'hide-in-overview';
 
 // Keep enums in sync with GSettings schemas
 const PinchType = {
@@ -173,6 +174,9 @@ const WindowButtonsPrefsWidget = new GObject.Class({
             }
         }));
         this.addRow("Which button order to use:", item);
+
+        // hide in overview?
+        this.addBoolean("Hide buttons in the overview?", WA_HIDEINOVERVIEW);
 
         // when to display the buttons (show-buttons)
         item = new Gtk.ComboBoxText();

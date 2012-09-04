@@ -18,7 +18,7 @@ Author: biox (Josiah Messiah)
 Maintainers: mathematical.coffee <mathematical.coffee@gmail.com>
              arkan duthrey <arkan1313@gmail.com>
 
-Note - This is a fork of the original repository, hopefully later on I'll push my changes to [biox repository](https://github.com/biox/Gnome-Shell-Window-Buttons-Extension)
+Note - the [mathematicalcoffee fork](https://github.com/mathematicalcoffee/Gnome-Shell-Window-Buttons-Extension) of this extension is where development happens, and it all then gets pushed to the original [biox repository](https://github.com/biox/Gnome-Shell-Window-Buttons-Extension).
 
 Installation
 ------------
@@ -155,6 +155,11 @@ See `themes/default/style.css` for more information.
 
 Changelog
 ---------
+v5/v5 on e.g.o:
+
+* Buttons hide in the Overview (cfclavijo; #6)
+* New theme Ambiance-Blue (cfclavijo; #6)
+
 v3/v4 on e.g.o:
 
 * Add hover style for the 'default' theme (#4)
