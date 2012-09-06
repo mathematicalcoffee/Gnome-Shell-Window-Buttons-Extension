@@ -5,17 +5,18 @@ Supports custom button layouts and css theming!
 
 <table>
   <tr>
-    <td><img src="https://github.com/mathematicalcoffee/Gnome-Shell-Window-Buttons-Extension/raw/master/screenshot.png" alt="Screenshot" /></td>
+    <td><img src="https://raw.github.com/cfclavijo/Gnome-Shell-Window-Buttons-Extension/gnome3.4/screenshot.png" alt="Screenshot" /></td>
   </tr>
   <tr>
-    <td>Current (14/Aug/2012) themes, top-to-bottom: default, Ambiance, Radiance, Zukwito, Zukwito-Dark</td>
+    <td>Current (31/Aug/2012) themes, top-to-bottom: default, Ambiance, Ambiance-Blue, Radiance, Zukwito, Zukwito-Dark</td>
   </tr>
 </table>
 
 Configure with `gnome-shell-extension-prefs` (GNOME 3.4) or by editing `extension.js` (GNOME 3.2).
 
 Author: biox (Josiah Messiah)   
-Maintainer: mathematical.coffee <mathematical.coffee@gmail.com>
+Maintainers: mathematical.coffee <mathematical.coffee@gmail.com>
+             arkan duthrey <arkan1313@gmail.com>
 
 Note - the [mathematicalcoffee fork](https://github.com/mathematicalcoffee/Gnome-Shell-Window-Buttons-Extension) of this extension is where development happens, and it all then gets pushed to the original [biox repository](https://github.com/biox/Gnome-Shell-Window-Buttons-Extension).
 
@@ -154,6 +155,11 @@ See `themes/default/style.css` for more information.
 
 Changelog
 ---------
+v5/v5 on e.g.o:
+
+* Buttons hide in the Overview (cfclavijo; #6)
+* New theme Ambiance-Blue (cfclavijo; #6)
+
 v3/v4 on e.g.o:
 
 * Add hover style for the 'default' theme (#4)

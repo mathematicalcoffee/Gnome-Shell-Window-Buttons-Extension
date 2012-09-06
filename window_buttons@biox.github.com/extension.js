@@ -8,6 +8,7 @@
  * - barravi <https://github.com/barravi>
  * - tiper <https://github.com/tiper>
  * - mathematical.coffee <mathematical.coffee@gmail.com>
+ * - cjclavijo
  *
  * Note: this version (for GNOME 3.2 distributed by extensions.gnome.org) does
  * not use gsettings like the old github version did, because that had to be
@@ -56,6 +57,9 @@ const ShowButtonsWhen = {
 // See ShowButtonsWhen above for an explanation of the options.
 const showbuttons = ShowButtonsWhen.WINDOWS;
 
+// should buttons hide in the overview (in addition to whatever `showbuttons` says)?
+const hideinoverview = true;
+
 // The order of the window buttons (e.g. :minimize,maximize,close).
 // Colon splits the buttons into two groups, left and right, which can be
 // positioned separately.
@@ -76,6 +80,7 @@ const theme = 'default';
 // Should we take the theme from the current Metacity theme instead
 // (/apps/metacity/general/theme)? If true this will OVERRIDE the above 'theme'.
 const doMetacity = false;
+
 
 
 // How to position the left and right groups of buttons.
@@ -279,6 +284,7 @@ WindowButtons.prototype = {
 
     _init: function () {
         this._wmSignals = [];
+        this._overviewSignals = [];
         this._windowTrackerSignal = 0;
     },
 
@@ -404,49 +410,51 @@ WindowButtons.prototype = {
             }),
             show = false;
 
-        /* easy cases: ShowButtonsWhen.ALWAYS (always show), and
-         * ShowButtonsWhen.WINDOWS (just check windows.length)
-         */
-        switch (showbuttons) {
-        // show whenever there are windows
-        case ShowButtonsWhen.WINDOWS:
-            show = windows.length;
-            break;
-       
-        // show whenever there are non-minimized windows
-        case ShowButtonsWhen.WINDOWS_VISIBLE:
-            for (let i = 0; i < windows.length; ++i) {
-                if (!windows[i].minimized) {
-                    show = true;
-                    break;
+        // if overview is active won't show the buttons
+        if (hideinoverview && Main.overview.visible) {
+            show = false;
+        } else {
+            switch (showbuttons) {
+            // show whenever there are windows
+            case ShowButtonsWhen.WINDOWS:
+                show = windows.length;
+                break;
+           
+            // show whenever there are non-minimized windows
+            case ShowButtonsWhen.WINDOWS_VISIBLE:
+                for (let i = 0; i < windows.length; ++i) {
+                    if (!windows[i].minimized) {
+                        show = true;
+                        break;
+                    }
                 }
-            }
-            break;
+                break;
 
-        // show iff current window is (fully) maximized
-        case ShowButtonsWhen.CURRENT_WINDOW_MAXIMIZED:
-            let activeWindow = global.display.focus_window;
-            show = (activeWindow ?
-                    activeWindow.get_maximized() === Meta.MaximizeFlags.BOTH :
-                    false);
-            break;
+            // show iff current window is (fully) maximized
+            case ShowButtonsWhen.CURRENT_WINDOW_MAXIMIZED:
+                let activeWindow = global.display.focus_window;
+                show = (activeWindow ?
+                        activeWindow.get_maximized() === Meta.MaximizeFlags.BOTH :
+                        false);
+                break;
 
-        // show iff *any* window is (fully) maximized
-        case ShowButtonsWhen.ANY_WINDOW_MAXIMIZED:
-            for (let i = 0; i < windows.length; ++i) {
-                if (windows[i].get_maximized() === Meta.MaximizeFlags.BOTH) {
-                    show = true;
-                    break;
+            // show iff *any* window is (fully) maximized
+            case ShowButtonsWhen.ANY_WINDOW_MAXIMIZED:
+                for (let i = 0; i < windows.length; ++i) {
+                    if (windows[i].get_maximized() === Meta.MaximizeFlags.BOTH) {
+                        show = true;
+                        break;
+                    }
                 }
-            }
-            break;
+                break;
 
-        // show all the time
-        case ShowButtonsWhen.ALWAYS:
-            /* falls through */
-        default:
-            show = true;
-            break;
+            // show all the time
+            case ShowButtonsWhen.ALWAYS:
+                /* falls through */
+            default:
+                show = true;
+                break;
+            }
         }
 
         // if the actors already match `show` don't do anything.
@@ -544,6 +552,14 @@ WindowButtons.prototype = {
     },
 
     _connectSignals: function () {
+        if (hideinoverview) {
+            // listen to the overview showing & hiding.
+            this._overviewSignals.push(Main.overview.connect('shown',
+                Lang.bind(this, this._windowChanged)));
+            this._overviewSignals.push(Main.overview.connect('hidden',
+                Lang.bind(this, this._windowChanged)));
+        }
+
         // if we are always showing the buttons then we don't have to listen
         // to window events
         if (showbuttons === ShowButtonsWhen.ALWAYS) {
@@ -595,6 +611,21 @@ WindowButtons.prototype = {
                 'notify::focus-app', Lang.bind(this, this._windowChanged));
     },
 
+    _disconnectSignals: function () {
+        if (this._windowTrackerSignal) {
+            Shell.WindowTracker.get_default().disconnect(this._windowTrackerSignal);
+        }
+        for (let i = 0; i < this._wmSignals; ++i) {
+            global.window_manager.disconnect(this._wmSignals.pop());
+        }
+        for (let i = 0; i < this._overviewSignals; ++i) {
+            Main.overview.disconnect(this._overviewSignals.pop());
+        }
+        this._wmSignals = [];
+        this._overviewSignals = [];
+        this._windowTrackerSignal = 0;
+    },
+
     enable: function () {
         //Create boxes for the buttons
         this.rightActor = new St.Bin({ style_class: 'box-bin'});
@@ -643,10 +674,7 @@ WindowButtons.prototype = {
         this._rightContainer.remove_actor(this.rightActor);
 
         /* disconnect all signals */
-        Shell.WindowTracker.get_default().disconnect(this._windowTrackerSignal);
-        for (let i = 0; i < this._wmSignals; ++i) {
-            global.window_manager.disconnect(this._wmSignals.pop());
-        }
+        this._disconnectSignals();
     }
 };
 
