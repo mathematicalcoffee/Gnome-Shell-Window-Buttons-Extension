@@ -27,6 +27,7 @@ const WA_LEFTPOS = 'position-left';
 const WA_RIGHTBOX = 'box-right';
 const WA_RIGHTPOS = 'position-right';
 const WA_SHOWBUTTONS = 'show-buttons';
+const WA_HIDEINOVERVIEW = 'hide-in-overview';
 
 // Keep enums in sync with GSettings schemas
 const PinchType = {
@@ -174,10 +175,12 @@ const WindowButtonsPrefsWidget = new GObject.Class({
         }));
         this.addRow("Which button order to use:", item);
 
+        // hide in overview?
+        this.addBoolean("Hide buttons in the overview?", WA_HIDEINOVERVIEW);
+
         // when to display the buttons (show-buttons)
         item = new Gtk.ComboBoxText();
-        let grid = new Gtk.Grid(),
-            explanations = {
+        let explanations = {
                 ALWAYS: "buttons will be shown all the time.",
                 WINDOWS: "buttons will be shown if and only if there are " +
                          "windows on the workspace.",
@@ -191,9 +194,14 @@ const WindowButtonsPrefsWidget = new GObject.Class({
                                       " the workspace. In this case, clicking" +
                                       " on a window button will control the " +
                                       "**uppermost maximized window** which " +
-                                      "is **not necesserily the current " +
+                                      "is **not necessarily the current " +
                                       "window!**."
             };
+        this.addRow("When should the buttons appear?", item);
+        let grid = new Gtk.Grid({column_spacing: 10}),
+            expander = new Gtk.Expander({
+                label: "Explanation of show-button modes"
+            });
         grid._rownum = 0;
         for (let type in ShowButtonsWhen) {
             if (!ShowButtonsWhen.hasOwnProperty(type)) {
@@ -202,23 +210,31 @@ const WindowButtonsPrefsWidget = new GObject.Class({
             let label = type.toLowerCase().replace(/_/g, ' ');
             item.append(ShowButtonsWhen[type].toString(), label);
 
-
+            let label2 = new Gtk.Label({
+                label: label + ':'
+            });
             let explan = new Gtk.Label({
                 label: explanations[type],
                 hexpand: true,
                 halign: Gtk.Align.START
             });
-            this.addRow.call(grid, label + ":", explan);
+            label2.set_alignment(0, 0);
+            explan.set_alignment(0, 0);
+            explan.set_line_wrap(true);
+            grid.attach(label2, 0, grid._rownum, 1, 1);
+            grid.attach(explan, 1, grid._rownum, 1, 1);
+            grid._rownum++;
         }
+        item.set_active_id(this._settings.get_enum(WA_SHOWBUTTONS).toString());
         item.connect('changed', Lang.bind(this, function (combo) {
             let value = parseInt(combo.get_active_id(), 10);
             if (value !== undefined &&
-                this._settings.get_string(WA_SHOWBUTTONS) !== value) {
-                this._settings.set_string(WA_SHOWBUTTONS, value);
+                this._settings.get_enum(WA_SHOWBUTTONS) !== value) {
+                this._settings.set_enum(WA_SHOWBUTTONS, value);
             }
         }));
-        this.addRow("When should the buttons appear?", item);
-        this.addItem(grid);
+        expander.add(grid);
+        this.addItem(expander);
     },
 
     /* insert controls for moving buttons */

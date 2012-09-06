@@ -48,6 +48,12 @@
       <description>Try to use the theme with the same name as the current metacity theme ('/apps/metacity/general/theme')</description>
     </key>
 
+    <key type="b" name="hide-in-overview">
+      <default>true</default>
+      <summary>Hide buttons in the overview?</summary>
+      <description>Hide buttons in the overview?</description>
+    </key>
+
     <key name="box-left" enum="org.gnome.shell.extensions.window-buttons.BoxType">
         <default>'left'</default>
         <summary>Box to put left buttons in</summary>
