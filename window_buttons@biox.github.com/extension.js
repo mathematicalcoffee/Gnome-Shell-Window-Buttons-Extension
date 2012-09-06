@@ -156,27 +156,7 @@ WindowButtons.prototype = {
             doMetacity = this._settings.get_boolean(WA_DO_METACITY);
 
         if (doMetacity) {
-            // GTK theme name:
-            // theme = Gio.Settings.new('org.gnome.desktop.interface'
-            // ).get_string('gtk-theme')
-
-            // Get Mutter / Metacity theme name.
-            // try dconf (GNOME 3.4) first. NOTE: on GNOME 3.2 this will
-            // segfault if the schema is not installed, hence we use
-            // Gio.Settings.list_schemas():
-            theme = Gio.Settings.list_schemas().filter(function (k) {
-                return k === DCONF_META_THEME_KEY;
-            });
-            if (theme.length) {
-                // dconf, GNOME 3.4
-                theme = Gio.Settings.new(DCONF_META_THEME_KEY);
-                theme = theme.get_string('theme');
-            } else {
-                // gconf, GNOME 3.2
-                // GNOME 3.2:
-                theme = GConf.Client.get_default().get_string(
-                        GCONF_META_THEME_KEY);
-            }
+            theme = Meta.prefs_get_theme();
         } else {
             theme = this._settings.get_string(WA_THEME);
         }
