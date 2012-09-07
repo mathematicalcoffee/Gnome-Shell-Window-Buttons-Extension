@@ -8,7 +8,7 @@
  * - barravi <https://github.com/barravi>
  * - tiper <https://github.com/tiper>
  * - mathematical.coffee <mathematical.coffee@gmail.com>
- * - cfclavijo
+ * - cjclavijo
  */
 
 const Lang = imports.lang;
@@ -52,14 +52,35 @@ Meta.MaximizeFlags.BOTH = (Meta.MaximizeFlags.HORIZONTAL |
     Meta.MaximizeFlags.VERTICAL);
 
 const _ORDER_DEFAULT = ":minimize,maximize,close";
-const DCONF_META_THEME_KEY = 'org.gnome.desktop.wm.preferences';
-const GCONF_META_THEME_KEY = '/apps/metacity/general/theme';
+const DCONF_META_PATH = 'org.gnome.desktop.wm.preferences';
 
 /********************
  * Helper functions *
  ********************/
 function warn(msg) {
     log("WARNING [Window Buttons]: " + msg);
+}
+
+/* Get the metacity button layout.
+ * On GNOME 3.2, this can be found in GCONF key
+ * /apps/metacity/general/button_layout. On GNOME 3.4, the gconf key does not
+ * exist and you must use org.gnome.desktop.wm.preferences button-layout.
+ */
+function getMetaButtonLayout() {
+    // try Gio.Settings first. Cannot query non-existant schema in 3.2 or
+    // we'll get a segfault.
+    let order;
+    try {
+        // the following code will *only* work in GNOME 3.4 (schema_id property
+        // is 'schema' in GNOME 3.2):
+        order = new Gio.Settings({schema_id: DCONF_META_PATH}).get_string(
+            'button-layout');
+    } catch (err) {
+        // GNOME 3.2
+        order = GConf.Client.get_default().get_string(
+                "/apps/metacity/general/button_layout");
+    }
+    return order;
 }
 
 /* convert Boxes.{LEFT,RIGHT,MIDDLE} into
@@ -213,16 +234,11 @@ WindowButtons.prototype = {
         let pinch = this._settings.get_enum(WA_PINCH);
         let order = _ORDER_DEFAULT;
 
-        if (pinch === PinchType.MUTTER) {
-            order = GConf.Client.get_default().get_string(
-                    "/desktop/gnome/shell/windows/button_layout");
-        } else if (pinch === PinchType.METACITY) {
-            order = GConf.Client.get_default().get_string(
-                    "/apps/metacity/general/button_layout");
+        if (pinch === PinchType.METACITY) {
+            order = getMetaButtonLayout();
         } else if (pinch === PinchType.GNOME_SHELL) {
-            order = Gio.Settings.new(
-                'org.gnome.shell.overrides'
-            ).get_string('button-layout');
+            order = Gio.Settings.new('org.gnome.shell.overrides').get_string(
+                    'button-layout');
         }
         /* if order is null because keys don't exist, get them from settings
          * (PinchType.CUSTOM) */
