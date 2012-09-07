@@ -15,7 +15,7 @@ Supports custom button layouts and css theming!
 Configure with `gnome-shell-extension-prefs` (GNOME 3.4) or by editing `extension.js` (GNOME 3.2).
 
 **Author**: biox (Josiah Messiah)   
-**Maintainers**: mathematical.coffee <mathematical.coffee@gmail.com>
+**Maintainers**: mathematical.coffee <mathematical.coffee@gmail.com>   
 **Contributors**:
 
 * barravi <https://github.com/barravi>
