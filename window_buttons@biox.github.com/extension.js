@@ -491,6 +491,8 @@ WindowButtons.prototype = {
             windows = workspace.list_windows().filter(function (w) {
                 return w.get_window_type() !== Meta.WindowType.DESKTOP;
             });
+        // BAH: list_windows() doesn't return in stackin order (I thought it did)
+        windows = global.display.sort_windows_by_stacking(windows);
 
         if (win === null || win.get_window_type() === Meta.WindowType.DESKTOP) {
             // No windows are active, control the uppermost window on the
@@ -504,7 +506,7 @@ WindowButtons.prototype = {
         if (showbuttons === ShowButtonsWhen.ANY_WINDOW_MAXIMIZED) {
             let i = windows.length;
             while (i--) {
-                if (windows[i].get_maximized() === Meta.MaxmizeFlags.BOTH &&
+                if (windows[i].get_maximized() === Meta.MaximizeFlags.BOTH &&
                         !windows[i].minimized) {
                     win = windows[i];
                     break;
