@@ -3,9 +3,8 @@
   
   <enum id='org.gnome.shell.extensions.window-buttons.PinchType'>
     <value value='0' nick='custom'/>
-    <value value='1' nick='mutter'/>
-    <value value='2' nick='metacity'/>
-    <value value='3' nick='gnome-shell'/>
+    <value value='1' nick='metacity'/>
+    <value value='2' nick='gnome-shell'/>
   </enum>
 
   <enum id='org.gnome.shell.extensions.window-buttons.BoxType'>
@@ -38,9 +37,9 @@
     </key>
     
     <key name="pinch" enum="org.gnome.shell.extensions.window-buttons.PinchType">
-      <default>'mutter'</default>
+      <default>'gnome-shell'</default>
       <summary>Use custom/mutter/metacity order</summary>
-      <description>Use custom button order or the pinch order settings from mutter/metacity. Use 'custom' to use the custom button order in the 'order' key, 'mutter' to use mutter's settings (/desktop/gnome/shell/windows/button_layout), 'metacity' to use metacity's settings (/apps/metacity/general/button_layout), 'gnome-shell' to use GNOME-shell's settings (org.gnome.shell.overrides.button-layout).</description>
+      <description>Use custom button order or the pinch order settings from mutter/metacity. Use 'custom' to use the custom button order in the 'order' key, 'metacity' to use metacity's settings (/apps/metacity/general/button_layout), 'gnome-shell' to use GNOME-shell's settings (org.gnome.shell.overrides.button-layout == /desktop/gnome/shell/windows/button_layout).</description>
     </key>
     
     <key type="b" name="do-metacity">

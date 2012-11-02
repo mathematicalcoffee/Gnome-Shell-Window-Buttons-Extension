@@ -32,9 +32,8 @@ const WA_HIDEINOVERVIEW = 'hide-in-overview';
 // Keep enums in sync with GSettings schemas
 const PinchType = {
     CUSTOM: 0,
-    MUTTER: 1,
-    METACITY: 2,
-    GNOME_SHELL: 3
+    METACITY: 1,
+    GNOME_SHELL: 2
 };
 
 // Which box to place things in.
@@ -203,7 +202,7 @@ const WindowButtonsPrefsWidget = new GObject.Class({
                                     "a window is focused. For example if you " +
                                     "have Nautilus managing the desktop and " +
                                     "click on it, you will have no focused " +
-                                    "windows so th buttons will hide."
+                                    "windows so the buttons will hide."
                     
             };
         this.addRow("When should the buttons appear?", item);
