@@ -20,6 +20,7 @@
     <value value='2' nick='windows-visible'/>
     <value value='3' nick='current-window-maximized'/>
     <value value='4' nick='any-window-maximized'/>
+    <value value='5' nick='any-window-focused'/>
   </enum>
 
   <schema path="/org/gnome/shell/extensions/window-buttons/" id="org.gnome.shell.extensions.window-buttons">

@@ -54,10 +54,13 @@ const ShowButtonsWhen = {
                                   //  all windows are minimized)
     CURRENT_WINDOW_MAXIMIZED: 3,  // Show buttons only when the current window
                                   //  is maximized.
-    ANY_WINDOW_MAXIMIZED: 4       // Show buttons when there is *any* maximized
+    ANY_WINDOW_MAXIMIZED: 4,      // Show buttons when there is *any* maximized
                                   //  window (in which case the uppermost
                                   //  maximized window will be affected, which
                                   //  may or may not be the current window!)
+    ANY_WINDOW_FOCUSED: 5         // Only show buttons when a window is focused
+                                  // (e.g. no window is focused if Nautilus is
+                                  // managin the desktop and it is selected)
 };
 
 /* **** HELPER FUNCTIONS *** */
@@ -195,7 +198,13 @@ const WindowButtonsPrefsWidget = new GObject.Class({
                                       " on a window button will control the " +
                                       "**uppermost maximized window** which " +
                                       "is **not necessarily the current " +
-                                      "window!**."
+                                      "window!**.",
+                ANY_WINDOW_FOCUSED: "buttons will be shown if and only if " +
+                                    "a window is focused. For example if you " +
+                                    "have Nautilus managing the desktop and " +
+                                    "click on it, you will have no focused " +
+                                    "windows so th buttons will hide."
+                    
             };
         this.addRow("When should the buttons appear?", item);
         let grid = new Gtk.Grid({column_spacing: 10}),

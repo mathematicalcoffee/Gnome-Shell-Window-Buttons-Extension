@@ -311,7 +311,7 @@ WindowButtons.prototype = {
 
     /*
      * ShowButtonsWhen.ALWAYS, WINDOWS, WINDOWS_VISIBLE,
-     * CURRENT_WINDOW_MAXIMIZED, ANY_WINDOW_MAXIMIZED
+     * CURRENT_WINDOW_MAXIMIZED, ANY_WINDOW_MAXIMIZED, ANY_WINDOW_FOCUSED
      */
     _windowChanged: function () {
         let workspace = global.screen.get_active_workspace(),
@@ -357,6 +357,11 @@ WindowButtons.prototype = {
                         break;
                     }
                 }
+                break;
+
+            // show iff *any* window is focused.
+            case ShowButtonsWhen.ANY_WINDOW_FOCUSED:
+                show = global.display.focus_window;
                 break;
 
             // show all the time
@@ -545,6 +550,15 @@ WindowButtons.prototype = {
                 Lang.bind(this, this._windowChanged)));
         }
 
+        // if we show the buttons as long as a window is focused it is sufficient
+        // to listen to notify::focus-app (a window is focused if and only if an
+        // its app is focused .. (?))
+        if (showbuttons === ShowButtonsWhen.ANY_WINDOW_FOCUSED) {
+            this._windowTrackerSignal = Shell.WindowTracker.get_default().connect(
+                    'notify::focus-app', Lang.bind(this, this._windowChanged));
+            return;
+        }
+
         // if we are always showing the buttons then we don't have to listen
         // to window events
         if (showbuttons === ShowButtonsWhen.ALWAYS) {
@@ -587,7 +601,7 @@ WindowButtons.prototype = {
             return;
         }
 
-        // for current_window_maximized we additinally want focus-app
+        // for current_window_maximized we additionally want focus-app
         // NOTE: this fires twice per focus-event, the first with activeWindow
         // being `null` and the second with it being the newly-focused window.
         // (Unless there is no newly-focused window).
