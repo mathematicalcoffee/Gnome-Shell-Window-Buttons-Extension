@@ -46,7 +46,7 @@ const ShowButtonsWhen = {
                                   //  all windows are minimized)
     CURRENT_WINDOW_MAXIMIZED: 3,  // Show buttons only when the current window
                                   //  is maximized.
-    ANY_WINDOW_MAXIMIZED: 4       // Show buttons when there is *any* maximized
+    ANY_WINDOW_MAXIMIZED: 4,      // Show buttons when there is *any* maximized
                                   //  window (in which case the uppermost
                                   //  maximized window will be affected, which
                                   //  may or may not be the current window!)
@@ -256,23 +256,6 @@ function getPosition(actor, position, nvisible) {
         }
         return Math.max(0, position - 1);
     }
-}
-
-/* Cycle to the next or previous box (do not wrap around) */
-function cycleBox(boxEnum, forward) {
-    let nextBox = boxEnum;
-    switch (boxEnum) {
-    case Boxes.LEFT:
-        nextBox = (forward ? Boxes.MIDDLE : Boxes.LEFT);
-        break;
-    case Boxes.MIDDLE:
-        nextBox = (forward ? Boxes.RIGHT : Boxes.LEFT);
-        break;
-    case Boxes.RIGHT:
-        nextBox = (forward ? Boxes.RIGHT : Boxes.MIDDLE);
-        break;
-    }
-    return nextBox;
 }
 
 /************************
