@@ -9,131 +9,8 @@
  * - tiper <https://github.com/tiper>
  * - mathematical.coffee <mathematical.coffee@gmail.com>
  * - cjclavijo
- *
- * Note: this version (for GNOME 3.2 distributed by extensions.gnome.org) does
- * not use gsettings like the old github version did, because that had to be
- * installed in /usr/share which requires root permissions.
- *
- * Instead, change settings by editting extension.js (In GNOME 3.4 you can
- * use gnome-shell-extension-prefs and gsettings instead of this).
- *
  */
 
-/*** GNOME 3.2: CONFIGURE THE EXTENSION HERE ***/
-
-// [leave this alone] Keep enums in sync with GSettings schemas
-const PinchType = {
-    CUSTOM: 0,
-    METACITY: 1,
-    GNOME_SHELL: 2
-};
-
-// [leave this alone] Which box to place things in.
-const Boxes = {
-    LEFT: 0,
-    RIGHT: 1,
-    MIDDLE: 2
-};
-
-
-// [leave this alone] When to display the buttons.
-const ShowButtonsWhen = {
-    ALWAYS: 0,                    // Show buttons all the time.
-    WINDOWS: 1,                   // Show buttons whenever windows exist
-                                  //  (hides when no apps open)
-    WINDOWS_VISIBLE: 2,           // Show buttons whenever *visible* windows
-                                  //  exist (as previous, but will also hide if
-                                  //  all windows are minimized)
-    CURRENT_WINDOW_MAXIMIZED: 3,  // Show buttons only when the current window
-                                  //  is maximized.
-    ANY_WINDOW_MAXIMIZED: 4       // Show buttons when there is *any* maximized
-                                  //  window (in which case the uppermost
-                                  //  maximized window will be affected, which
-                                  //  may or may not be the current window!)
-};
-
-// When should we show the buttons? (default: they are visible if and only if
-// there are windows on your workspace).
-// See ShowButtonsWhen above for an explanation of the options.
-const showbuttons = ShowButtonsWhen.WINDOWS;
-
-// should buttons hide in the overview (in addition to whatever `showbuttons` says)?
-const hideinoverview = true;
-
-// The order of the window buttons (e.g. :minimize,maximize,close).
-// Colon splits the buttons into two groups, left and right, which can be
-// positioned separately.
-// If you wish to use this order (rather than the Mutter/Metacity one), you must
-// set the 'pinch' variable below to PinchType.CUSTOM.
-const order = ':minimize,maximize,close';
-
-// Use custom button order or pinch order settings from mutter/metacity.
-// Options: PinchType.METACITY  (use /apps/metacity/general/button_layout)
-//          PinchType.GNOME_SHELL(use org.gnome.shell.overrides.button-layout
-//                                == /desktop/gnome/shell/windows/button_layout)
-//          PinchType.CUSTOM    (use the 'order' variable above)
-const pinch = PinchType.METACITY;
-
-// The name of the theme to use (the name of one of the folders in 'themes')
-const theme = 'default';
-
-// Should we take the theme from the current Metacity theme instead
-// (/apps/metacity/general/theme)? If true this will OVERRIDE the above 'theme'.
-const doMetacity = false;
-
-
-
-// How to position the left and right groups of buttons.
-// The position is defined by two properties: 'box' and 'position'.
-//
-// The 'box' value is which box in the top panel to put the buttons in:
-// * Boxes.LEFT means in the left box (usually holds the activities and
-//   window title buttons)
-// * Boxes.MIDDLE means the centre box (usually holds the date/time, unless
-//   you have an extension that moves the clock to the right for you)
-// * Boxes.RIGHT means the right box (status area, user menu).
-//
-// The 'position' value is where *within* the box you want the buttons to be
-// placed.
-// Example: 1 means you want them to be the 'first item from the left', 2 means
-//  they'll be the 'second item from the left', and so on.
-// -1 means it'll be the first item from the *right*, -2 means second item from
-//  the right, and so on.
-// (Don't set it to 0: this will have undefined behaviour).
-// EXAMPLES:
-// Put as the right-most item in the status bar:
-//     box: Boxes.RIGHT,
-//     position: -1
-// Put as the left-most item in the status bar (i.e. after the title bar but
-//  as far right as possible):
-//     box: Boxes.RIGHT,
-//     position: 1
-// Put right after the title-bar (no gap in between):
-//     box: Boxes.LEFT,
-//     position: -1
-// Put in before the title-bar (between 'Activities' and the title bar):
-//     box: Boxes.LEFT,
-//     position: 2
-const buttonPosition = {
-    left: {
-        // Position of the left group of buttons (if any). Change as you like.
-        // Default: between the activities bar and the app menu, i.e. second
-        //  item from the left in the left box.
-        box: Boxes.LEFT,
-        position: 2
-    },
-
-    right: {
-        // Position of the right group of buttons (if any). Change as you like.
-        // Default: after the title bar as far right as possible, i.e. the first
-        // item from the left in the right box.
-        box: Boxes.RIGHT,
-        position: 1
-    }
-};
-
-
-/*********** CODE. LEAVE THE FOLLOWING **************/
 const Lang = imports.lang;
 const St = imports.gi.St;
 const GConf = imports.gi.GConf;
@@ -144,10 +21,31 @@ const Mainloop = imports.mainloop;
 const Meta = imports.gi.Meta;
 const Shell = imports.gi.Shell;
 
+const ExtensionUtils = imports.misc.extensionUtils;
 const Main = imports.ui.main;
 const PanelMenu = imports.ui.panelMenu;
 
+const Me = ExtensionUtils.getCurrentExtension();
+const Convenience = Me.imports.convenience;
+const Prefs = Me.imports.prefs;
 let extensionPath = "";
+
+// Settings
+const WA_PINCH = Prefs.WA_PINCH;
+const WA_ORDER = Prefs.WA_ORDER;
+const WA_THEME = Prefs.WA_THEME;
+const WA_DO_METACITY = Prefs.WA_DO_METACITY;
+const WA_LEFTBOX = Prefs.WA_LEFTBOX;
+const WA_LEFTPOS = Prefs.WA_LEFTPOS;
+const WA_RIGHTPOS = Prefs.WA_RIGHTPOS;
+const WA_RIGHTBOX = Prefs.WA_RIGHTBOX;
+const WA_SHOWBUTTONS = Prefs.WA_SHOWBUTTONS;
+const WA_HIDEINOVERVIEW = Prefs.WA_HIDEINOVERVIEW;
+
+// Keep enums in sync with GSettings schemas
+const PinchType = Prefs.PinchType;
+const Boxes = Prefs.Boxes;
+const ShowButtonsWhen = Prefs.ShowButtonsWhen;
 
 // Laziness
 Meta.MaximizeFlags.BOTH = (Meta.MaximizeFlags.HORIZONTAL |
@@ -255,23 +153,6 @@ function getPosition(actor, position, nvisible) {
     }
 }
 
-/* Cycle to the next or previous box (do not wrap around) */
-function cycleBox(boxEnum, forward) {
-    let nextBox = boxEnum;
-    switch (boxEnum) {
-    case Boxes.LEFT:
-        nextBox = (forward ? Boxes.MIDDLE : Boxes.LEFT);
-        break;
-    case Boxes.MIDDLE:
-        nextBox = (forward ? Boxes.RIGHT : Boxes.LEFT);
-        break;
-    case Boxes.RIGHT:
-        nextBox = (forward ? Boxes.RIGHT : Boxes.MIDDLE);
-        break;
-    }
-    return nextBox;
-}
-
 /************************
  * Window Buttons class *
  ************************/
@@ -283,25 +164,38 @@ WindowButtons.prototype = {
     __proto__: PanelMenu.ButtonBox.prototype,
 
     _init: function () {
+        //Load Settings
+        this._settings = Convenience.getSettings();
+
         this._wmSignals = [];
         this._overviewSignals = [];
         this._windowTrackerSignal = 0;
+        this._locked = false;
     },
 
     _loadTheme: function () {
-        let newtheme = theme;
+
+        let theme,
+            oldtheme = this.theme_path || false,
+            doMetacity = this._settings.get_boolean(WA_DO_METACITY);
+
         if (doMetacity) {
-            newtheme = Meta.prefs_get_theme();
+            theme = Meta.prefs_get_theme();
+        } else {
+            theme = this._settings.get_string(WA_THEME);
         }
 
         // if still no theme, use the old one or 'default'
-        if (!newtheme) {
+        if (!theme) {
             warn("Could not load the requested theme.");
-            newtheme = theme || 'default';
+            theme = oldtheme || 'default';
+        }
+        if (theme === oldtheme) {
+            return;
         }
 
         // Get CSS of new theme, and check it exists, falling back to 'default'
-        let cssPath = GLib.build_filenamev([extensionPath, 'themes', newtheme,
+        let cssPath = GLib.build_filenamev([extensionPath, 'themes', theme,
                                             'style.css']);
         if (!GLib.file_test(cssPath, GLib.FileTest.EXISTS)) {
             cssPath = GLib.build_filenamev([extensionPath,
@@ -310,7 +204,10 @@ WindowButtons.prototype = {
 
         let themeContext = St.ThemeContext.get_for_stage(global.stage),
             currentTheme = themeContext.get_theme();
-
+        if (oldtheme) {
+            // unload the old style
+            currentTheme.unload_stylesheet(oldtheme);
+        }
         // load the new style
         currentTheme.load_stylesheet(cssPath);
 
@@ -318,6 +215,8 @@ WindowButtons.prototype = {
         // way to do it; running the cursor over the buttons works too)
         this.rightActor.grab_key_focus();
         this.leftActor.grab_key_focus();
+
+        this.theme_path = cssPath;
     },
 
     _display: function () {
@@ -332,14 +231,21 @@ WindowButtons.prototype = {
             }
         }
 
+        let pinch = this._settings.get_enum(WA_PINCH);
+        let order = _ORDER_DEFAULT;
+
         if (pinch === PinchType.METACITY) {
             order = getMetaButtonLayout();
         } else if (pinch === PinchType.GNOME_SHELL) {
             order = Gio.Settings.new('org.gnome.shell.overrides').get_string(
                     'button-layout');
         }
-        // otherwise, we end up with 'order' specified up the top
-        /* If still no joy, use a default of :minimize,maximize,close ... */
+        /* if order is null because keys don't exist, get them from settings
+         * (PinchType.CUSTOM) */
+        if (pinch === PinchType.CUSTOM || !order || !order.length) {
+            order = this._settings.get_string(WA_ORDER);
+        }
+        /* If still no joy, use a default of :minmize,maximizeclose ... */
         if (!order || !order.length) {
             order = _ORDER_DEFAULT;
         }
@@ -372,7 +278,7 @@ WindowButtons.prototype = {
                     style_class: orderRight[i]  + ' window-button',
                     track_hover: true
                 });
-                button.set_tooltip_text(buttonlist[orderRight[i]][0]);
+                //button.set_tooltip_text(buttonlist[orderRight[i]][0]);
                 button.connect('button-press-event', Lang.bind(this,
                             buttonlist[orderRight[i]][1]));
                 this.rightBox.add(button);
@@ -391,7 +297,7 @@ WindowButtons.prototype = {
                     style_class: orderLeft[i] + ' window-button',
                     track_hover: true
                 });
-                button.set_tooltip_text(buttonlist[orderLeft[i]][0]);
+                //button.set_tooltip_text(buttonlist[orderLeft[i]][0]);
                 button.connect('button-press-event', Lang.bind(this,
                             buttonlist[orderLeft[i]][1]));
                 this.leftBox.add(button);
@@ -411,10 +317,11 @@ WindowButtons.prototype = {
             show = false;
 
         // if overview is active won't show the buttons
-        if (hideinoverview && Main.overview.visible) {
+        if (this._settings.get_boolean(WA_HIDEINOVERVIEW) &&
+                Main.overview.visible) {
             show = false;
         } else {
-            switch (showbuttons) {
+            switch (this._settings.get_enum(WA_SHOWBUTTONS)) {
             // show whenever there are windows
             case ShowButtonsWhen.WINDOWS:
                 show = windows.length;
@@ -496,7 +403,8 @@ WindowButtons.prototype = {
         }
 
         // Incorporate onlymax behaviour: get the uppermost maximized window
-        if (showbuttons === ShowButtonsWhen.ANY_WINDOW_MAXIMIZED) {
+        if (this._settings.get_enum(WA_SHOWBUTTONS) ===
+                ShowButtonsWhen.ANY_WINDOW_MAXIMIZED) {
             let i = windows.length;
             while (i--) {
                 if (windows[i].get_maximized() === Meta.MaxmizeFlags.BOTH &&
@@ -551,8 +459,80 @@ WindowButtons.prototype = {
         win.delete(global.get_current_time());
     },
 
+    _onPositionChange: function (settings, changedKey, positionKey, boxKey) {
+        if (this._locked) {
+            return;
+        }
+        let pos = this._settings.get_int(positionKey),
+            newPos = pos,
+            box = this._settings.get_enum(boxKey),
+            newBox = box,
+            n = getNChildren(getBox(box));
+
+        // if pos is 0, we are waiting on a box change and then another
+        // position change with the proper non-zero position (this is since
+        // we can't import Main from prefs.js to check the number of
+        // children in Main.panel._xxxBox).
+        if (pos === 0) {
+            return;
+        }
+
+        this._locked = true;
+        if (n === 0) {
+            // if there are no children set this
+            // as the first.
+            pos = 1;
+        } else if (pos < -n) { // moving left through to the next box
+            // we have to process a change in the box
+            newBox = Prefs.cycleBox(box, false);
+            newPos = -1;
+        } else if (pos > n) { // moving right through to the next box
+            newBox = Prefs.cycleBox(box, true);
+            newPos = 1;
+
+        // When we pass the half-way mark, switch from anchoring left to
+        // anchoring right (or vice versa moving backwards).
+        } else if (pos > 0 && pos > (n + 1) / 2) {
+            newPos = pos - n - 1;
+        } else if (pos < 0 && -pos > (n + 1) / 2)  {
+            newPos = n + pos + 1;
+        } else if (pos === 0) {
+            // should have been taken care of
+            warn("!!! [Window Buttons] !!! pos === 0, this shouldn\'t happen");
+            // will just guess pos = 1 ... (move to LHS of the current box)
+            newPos = 1;
+        }
+
+        if (newBox !== box) {
+            this._settings.set_enum(boxKey, newBox);
+        }
+        if (newPos !== pos) {
+            this._settings.set_int(positionKey, newPos);
+        }
+
+        // now actually process the changes.
+        // FIXME: in GNOME 3.4 can use .set_child_at_index.
+        let container = (positionKey === WA_LEFTPOS ? '_leftContainer' :
+            '_rightContainer'),
+            actor = (positionKey === WA_LEFTPOS ? this.leftActor :
+                this.rightActor);
+        box = getBox(newBox);
+        this[container].remove_actor(actor);
+        if (this[container] !== box) {
+            this[container] = box;
+        }
+        // TODO: has nchildren updated by now? should we do getPosition
+        // ourselves?
+        newPos = getPosition(this[container], newPos, n);
+        this[container].insert_child_at_index(actor, newPos);
+
+        this._locked = false;
+    },
+
     _connectSignals: function () {
-        if (hideinoverview) {
+        let showbuttons = this._settings.get_enum(WA_SHOWBUTTONS);
+
+        if (this._settings.get_boolean(WA_HIDEINOVERVIEW)) {
             // listen to the overview showing & hiding.
             this._overviewSignals.push(Main.overview.connect('shown',
                 Lang.bind(this, this._windowChanged)));
@@ -642,24 +622,61 @@ WindowButtons.prototype = {
         //Load Theme
         this._loadTheme();
 
+        //Connect to setting change events
+        this._settings.connect('changed::' + WA_DO_METACITY,
+                Lang.bind(this, this._loadTheme));
+        this._settings.connect('changed::' + WA_THEME,
+                Lang.bind(this, this._loadTheme));
+        this._settings.connect('changed::' + WA_ORDER,
+                Lang.bind(this, this._display));
+        this._settings.connect('changed::' + WA_PINCH,
+                Lang.bind(this, this._display));
+        this._settings.connect('changed::' + WA_SHOWBUTTONS,
+                Lang.bind(this, function () {
+                    this._disconnectSignals();
+                    this._connectSignals();
+                    this._windowChanged();
+                }));
+        this._settings.connect('changed::' + WA_HIDEINOVERVIEW,
+                Lang.bind(this, function () {
+                    this._disconnectSignals();
+                    this._connectSignals();
+                    this._windowChanged();
+                }));
+
+        this._settings.connect('changed::' + WA_LEFTPOS, Lang.bind(this,
+                    this._onPositionChange, WA_LEFTPOS, WA_LEFTBOX));
+        this._settings.connect('changed::' + WA_RIGHTPOS, Lang.bind(this,
+                    this._onPositionChange, WA_RIGHTPOS, WA_RIGHTBOX));
+
+        this._settings.connect('changed::' + WA_LEFTBOX, Lang.bind(this,
+                    this._onPositionChange, WA_LEFTPOS, WA_LEFTBOX));
+        this._settings.connect('changed::' + WA_RIGHTBOX, Lang.bind(this,
+                    this._onPositionChange, WA_RIGHTPOS, WA_RIGHTBOX));
+
         // Connect to window change events
         this._wmSignals = [];
         this._windowTrackerSignal = 0;
         this._connectSignals();
 
-        this._leftContainer = getBox(buttonPosition.left.box);
-        this._rightContainer = getBox(buttonPosition.right.box);
+        let leftbox = this._settings.get_enum(WA_LEFTBOX),
+            rightbox = this._settings.get_enum(WA_RIGHTBOX),
+            leftpos = this._settings.get_int(WA_LEFTPOS),
+            rightpos = this._settings.get_int(WA_RIGHTPOS);
+
+        this._leftContainer = getBox(leftbox);
+        this._rightContainer = getBox(rightbox);
 
         // A delay is needed to let all the other icons load first.
         // Also, show or hide buttons after a delay to let all the windows
         // be properly "there".
         Mainloop.idle_add(Lang.bind(this, function () {
-            this._leftContainer.insert_actor(this.leftActor, getPosition(
-                    this._leftContainer, buttonPosition.left.position,
+            this._leftContainer.insert_child_at_index(this.leftActor,
+                    getPosition(this._leftContainer, leftpos,
                         getNChildren(this._leftContainer)));
-            this._rightContainer.insert_actor(this.rightActor, getPosition(
-                    this._rightContainer, buttonPosition.right.position,
-                        getNChildren(this._rightContainer)));
+            this._rightContainer.insert_child_at_index(this.rightActor,
+                    getPosition(this._rightContainer,
+                        rightpos, getNChildren(this._rightContainer)));
 
             // Show or hide buttons
             this._windowChanged();
@@ -674,6 +691,7 @@ WindowButtons.prototype = {
         this._rightContainer.remove_actor(this.rightActor);
 
         /* disconnect all signals */
+        this._settings.disconnectAll();
         this._disconnectSignals();
     }
 };

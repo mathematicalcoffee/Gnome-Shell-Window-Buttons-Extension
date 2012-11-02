@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schemalist gettext-domain="gnome-shell-extensions">
+  
+  <enum id='org.gnome.shell.extensions.window-buttons.PinchType'>
+    <value value='0' nick='custom'/>
+    <value value='1' nick='metacity'/>
+    <value value='2' nick='gnome-shell'/>
+  </enum>
+
+  <enum id='org.gnome.shell.extensions.window-buttons.BoxType'>
+    <value value='0' nick='left'/>
+    <value value='1' nick='right'/>
+    <value value='2' nick='middle'/>
+  </enum>
+
+  <enum id='org.gnome.shell.extensions.window-buttons.ShowButtonsWhen'>
+    <value value='0' nick='always'/>
+    <value value='1' nick='windows'/>
+    <value value='2' nick='windows-visible'/>
+    <value value='3' nick='current-window-maximized'/>
+    <value value='4' nick='any-window-maximized'/>
+  </enum>
+
+  <schema path="/org/gnome/shell/extensions/window-buttons/" id="org.gnome.shell.extensions.window-buttons">
+
+    <key type="s" name="order">
+      <default>":minimize,maximize,close"</default>
+      <summary>Button Order</summary>
+      <description>The order of the window buttons (e.g. :minimize,maximize,close). Colon splits the buttons into two groups that you can position separately.</description>
+    </key>
+
+    <key type="s" name="theme">
+      <default>"default"</default>
+      <summary>Theme</summary>
+      <description>The name of the theme to use (must be one of the folders in [extensionPath]/themes).</description>
+    </key>
+    
+    <key name="pinch" enum="org.gnome.shell.extensions.window-buttons.PinchType">
+      <default>'metacity'</default>
+      <summary>Use custom/gnome-shell/metacity order</summary>
+      <description>Use custom button order or the pinch order settings from mutter/metacity. Use 'custom' to use the custom button order in the 'order' key, 'metacity' to use metacity's settings (/apps/metacity/general/button_layout), 'gnome-shell' to use GNOME-shell/Mutter's settings (org.gnome.shell.overrides.button-layout).</description>
+    </key>
+    
+    <key type="b" name="do-metacity">
+      <default>true</default>
+      <summary>Match Metacity theme if possible</summary>
+      <description>Try to use the theme with the same name as the current metacity theme ('/apps/metacity/general/theme')</description>
+    </key>
+
+    <key type="b" name="hide-in-overview">
+      <default>true</default>
+      <summary>Hide buttons in the overview?</summary>
+      <description>Hide buttons in the overview?</description>
+    </key>
+
+    <key name="box-left" enum="org.gnome.shell.extensions.window-buttons.BoxType">
+        <default>'left'</default>
+        <summary>Box to put left buttons in</summary>
+        <description>'left' : buttons placed in the left box (activities + window title button); 'right': buttons placed in the right box (status area); 'middle': buttons placed in the centre box (date/time, unless you have (e.g.) Frippery Move Clock extension, in which case the centre box is empty and in between the left and right boxes)</description>
+    </key>
+
+    <key name="box-right" enum="org.gnome.shell.extensions.window-buttons.BoxType">
+        <default>'right'</default>
+        <summary>Box to put right buttons in</summary>
+        <description>'left' : buttons placed in the left box (activities + window title button); 'right': buttons placed in the right box (status area); 'middle': buttons placed in the centre box (date/time, unless you have (e.g.) Frippery Move Clock extension, in which case the centre box is empty and in between the left and right boxes)</description>
+    </key>
+
+    <key type="i" name="position-left">
+        <default>2</default>
+        <summary>Position of the left buttons</summary>
+        <description>1 means 'first item from the left', 2 means 'second item from the left', and so on. Use negative numbers to mean 'from the right' (-1 is 'first item from the right').</description>
+    </key>
+
+    <key type="i" name="position-right">
+        <default>-1</default>
+        <summary>Position of the right buttons</summary>
+        <description>1 means 'first item from the left', 2 means 'second item from the left', and so on. Use negative numbers to mean 'from the right' (-1 is 'first item from the right').</description>
+    </key>
+    
+    <key type="b" name="onlymax">
+      <default>false</default>
+      <summary>Control only maximized windows</summary>
+      <description>Prioritise controlling windows which are maximized (pressing buttons will control the uppermost maximized window rather than the current active one).</description>
+    </key>
+    
+    <key type="b" name="hideonnomax">
+      <default>false</default>
+      <summary>Hide if there are no maximized windows</summary>
+      <description>Hide the window buttons if there are no maximized windows to control. Only works if controling only maximized windows. Only has any effect is the 'onlymax' option is set.</description>
+    </key>
+
+    <key name="show-buttons" enum="org.gnome.shell.extensions.window-buttons.ShowButtonsWhen">
+      <default>'windows'</default>
+      <summary>When to show window buttons.</summary>
+      <description>When to show the window buttons. 'always': show them all the time. 'windows' (default): show them when there are windows (hide when there are no windows at all); 'windows-visible': show them when there are *visible* windows (hide when there are no non-maximized windows); 'current-window-maximized': show buttons only when the current window is maximized; 'any-window-maximized': show buttons when *any* window is maximized (and control the uppermost maximized window, whether or not that is the *current* active window!).</description>
+    </key>
+  </schema>
+</schemalist>

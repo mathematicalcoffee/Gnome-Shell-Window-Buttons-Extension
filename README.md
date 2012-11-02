@@ -14,15 +14,19 @@ Supports custom button layouts and css theming!
 
 Configure with `gnome-shell-extension-prefs` (GNOME 3.4) or by editing `extension.js` (GNOME 3.2).
 
-Author: biox (Josiah Messiah)   
-Maintainers: mathematical.coffee <mathematical.coffee@gmail.com>
-             arkan duthrey <arkan1313@gmail.com>
+**Author**: biox (Josiah Messiah)   
+**Maintainers**: mathematical.coffee <mathematical.coffee@gmail.com>   
+**Contributors**:
+
+* barravi <https://github.com/barravi>
+* tiper <https://github.com/tiper>
+* arkan duthrey <arkan1313@gmail.com>
 
 Note - the [mathematicalcoffee fork](https://github.com/mathematicalcoffee/Gnome-Shell-Window-Buttons-Extension) of this extension is where development happens, and it all then gets pushed to the original [biox repository](https://github.com/biox/Gnome-Shell-Window-Buttons-Extension).
 
 Installation
 ------------
-(NEW: hopefully, you can install from extensions.gnome.org).
+**NEW**: Install it from [extensions.gnome.org](https://extensions.gnome.org/extension/426/window-buttons/).
 
 ### GNOME 3.4
 Either download the .zip file from the [Downloads page](https://github.com/biox/Gnome-Shell-Window-Buttons-Extension/downloads) or checkout the code to the `gnome3.4` branch.
