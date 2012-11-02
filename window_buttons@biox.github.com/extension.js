@@ -420,7 +420,6 @@ WindowButtons.prototype = {
                 }
             }
         }
-        log(win);
         return win;
     },
 
