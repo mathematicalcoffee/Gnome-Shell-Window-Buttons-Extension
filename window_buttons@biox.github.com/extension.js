@@ -701,8 +701,8 @@ WindowButtons.prototype = {
     },
 
     disable: function () {
-        this._leftContainer.remove_actor(this.leftActor);
-        this._rightContainer.remove_actor(this.rightActor);
+        this.leftActor.destroy();
+        this.rightActor.destroy();
 
         /* disconnect all signals */
         this._settings = null;
