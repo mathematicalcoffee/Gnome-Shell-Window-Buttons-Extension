@@ -1,0 +1,33 @@
+#!/bin/bash
+# This script will try to convert a metacity or unity theme to a Window Buttons one.
+#
+# Usage: './convert-theme path_to_theme [output_directory]'
+# Example: './convert-theme /usr/share/themes/Ambiance ~/.themes/'
+#
+# path_to_theme    | The path to the theme to convert. It should have either a
+#                  | 'unity' or 'metacity-1' subfolder to be valid for this script.
+# output_directory | The directory to place the output themes folder.
+#                  | A folder 'output_directory/theme_name' will be made with the
+#                  | window-buttons-compatible theme.
+#                  | Place it either in ~/.themes/ or extension_directory/themes/.
+if [ $# -eq 0 ]; then
+    echo "Usage: $0 path_to_theme [output_directory]"
+    echo "path_to_theme    : The path to the theme to convert. It should have either a"
+    echo "                   'unity' or 'metacity-1' subfolder to be valid for this script."
+    echo "output_directory : The directory to place the output themes folder."
+    echo "                   A folder 'output_directory/theme_name' will be made with the"
+    echo "                   window-buttons-compatible theme."
+    echo "                   Place it either in ~/.themes/ or extension_directory/themes/."
+    echo ""
+    echo "Example:"
+    echo "$0 /usr/share/themes/Ambiance ~/.themes"
+    echo ""
+    exit 1
+fi
+
+DIR="$(cd -P "$(dirname "${BASH_SOURCE[0]}")" && pwd)";
+if [ $# -eq 1 ]; then
+    gjs-console -I $DIR -c "const Main = imports.themesParser; Main.generateStyle($1);"
+else
+    gjs-console -I $DIR -c "const Main = imports.themesParser; Main.generateStyle($1, $2);"
+fi

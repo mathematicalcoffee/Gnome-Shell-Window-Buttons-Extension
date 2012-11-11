@@ -195,3 +195,9 @@ function generateUnityStyle(themeInfo, basedir) {
  */
 function generateMetacityStyle(stylePath, basedir) {
 }
+
+/** The top-level function to call.
+ * Generates a style for the specified directories.
+ */
+function generateStyle(themeDir, outDir) {
+}
