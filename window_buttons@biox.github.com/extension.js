@@ -164,9 +164,6 @@ WindowButtons.prototype = {
     __proto__: PanelMenu.ButtonBox.prototype,
 
     _init: function () {
-        //Load Settings
-        this._settings = Convenience.getSettings();
-
         this._wmSignals = [];
         this._overviewSignals = [];
         this._windowTrackerSignal = 0;
@@ -622,6 +619,8 @@ WindowButtons.prototype = {
     },
 
     enable: function () {
+        this._settings = Convenience.getSettings();
+        this._locked = false;
         //Create boxes for the buttons
         this.rightActor = new St.Bin({ style_class: 'box-bin'});
         this.rightBox = new St.BoxLayout({ style_class: 'button-box' });
