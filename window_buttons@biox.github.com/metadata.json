@@ -6,5 +6,5 @@
   "url": "https://github.com/biox/Gnome-Shell-Window-Buttons-Extension",
   "settings-schema": "org.gnome.shell.extensions.window-buttons",
   "version": 8,
-  "dev-version": "2.2_gnome3.4+"
+  "dev-version": "2.2.1_gnome3.4+"
 }
