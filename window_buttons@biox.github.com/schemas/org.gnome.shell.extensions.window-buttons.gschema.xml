@@ -19,6 +19,7 @@
     <value value='2' nick='windows-visible'/>
     <value value='3' nick='current-window-maximized'/>
     <value value='4' nick='any-window-maximized'/>
+    <value value='5' nick='any-window-focused'/>
   </enum>
 
   <schema path="/org/gnome/shell/extensions/window-buttons/" id="org.gnome.shell.extensions.window-buttons">
@@ -36,9 +37,9 @@
     </key>
     
     <key name="pinch" enum="org.gnome.shell.extensions.window-buttons.PinchType">
-      <default>'metacity'</default>
-      <summary>Use custom/gnome-shell/metacity order</summary>
-      <description>Use custom button order or the pinch order settings from mutter/metacity. Use 'custom' to use the custom button order in the 'order' key, 'metacity' to use metacity's settings (/apps/metacity/general/button_layout), 'gnome-shell' to use GNOME-shell/Mutter's settings (org.gnome.shell.overrides.button-layout).</description>
+      <default>'gnome-shell'</default>
+      <summary>Use custom/metacity/gnome-shell order</summary>
+      <description>Use custom button order or the pinch order settings from mutter/metacity. Use 'custom' to use the custom button order in the 'order' key, 'metacity' to use metacity's settings (/apps/metacity/general/button_layout), 'gnome-shell' to use GNOME-shell's settings (org.gnome.shell.overrides.button-layout == /desktop/gnome/shell/windows/button_layout).</description>
     </key>
     
     <key type="b" name="do-metacity">

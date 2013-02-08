@@ -164,9 +164,6 @@ WindowButtons.prototype = {
     __proto__: PanelMenu.ButtonBox.prototype,
 
     _init: function () {
-        //Load Settings
-        this._settings = Convenience.getSettings();
-
         this._wmSignals = [];
         this._overviewSignals = [];
         this._windowTrackerSignal = 0;
@@ -236,7 +233,7 @@ WindowButtons.prototype = {
 
         if (pinch === PinchType.METACITY) {
             order = getMetaButtonLayout();
-        } else if (pinch === PinchType.GNOME_SHELL) {
+        } else if (pinch === PinchType.GNOME_SHELL) { // same as the old PinchType.MUTTER
             order = Gio.Settings.new('org.gnome.shell.overrides').get_string(
                     'button-layout');
         }
@@ -307,7 +304,7 @@ WindowButtons.prototype = {
 
     /*
      * ShowButtonsWhen.ALWAYS, WINDOWS, WINDOWS_VISIBLE,
-     * CURRENT_WINDOW_MAXIMIZED, ANY_WINDOW_MAXIMIZED
+     * CURRENT_WINDOW_MAXIMIZED, ANY_WINDOW_MAXIMIZED, ANY_WINDOW_FOCUSED
      */
     _windowChanged: function () {
         let workspace = global.screen.get_active_workspace(),
@@ -355,6 +352,11 @@ WindowButtons.prototype = {
                 }
                 break;
 
+            // show iff *any* window is focused.
+            case ShowButtonsWhen.ANY_WINDOW_FOCUSED:
+                show = global.display.focus_window;
+                break;
+
             // show all the time
             case ShowButtonsWhen.ALWAYS:
                 /* falls through */
@@ -393,6 +395,8 @@ WindowButtons.prototype = {
             windows = workspace.list_windows().filter(function (w) {
                 return w.get_window_type() !== Meta.WindowType.DESKTOP;
             });
+        // BAH: list_windows() doesn't return in stackin order (I thought it did)
+        windows = global.display.sort_windows_by_stacking(windows);
 
         if (win === null || win.get_window_type() === Meta.WindowType.DESKTOP) {
             // No windows are active, control the uppermost window on the
@@ -407,14 +411,13 @@ WindowButtons.prototype = {
                 ShowButtonsWhen.ANY_WINDOW_MAXIMIZED) {
             let i = windows.length;
             while (i--) {
-                if (windows[i].get_maximized() === Meta.MaxmizeFlags.BOTH &&
+                if (windows[i].get_maximized() === Meta.MaximizeFlags.BOTH &&
                         !windows[i].minimized) {
                     win = windows[i];
                     break;
                 }
             }
         }
-
         return win;
     },
 
@@ -540,6 +543,15 @@ WindowButtons.prototype = {
                 Lang.bind(this, this._windowChanged)));
         }
 
+        // if we show the buttons as long as a window is focused it is sufficient
+        // to listen to notify::focus-app (a window is focused if and only if an
+        // its app is focused .. (?))
+        if (showbuttons === ShowButtonsWhen.ANY_WINDOW_FOCUSED) {
+            this._windowTrackerSignal = Shell.WindowTracker.get_default().connect(
+                    'notify::focus-app', Lang.bind(this, this._windowChanged));
+            return;
+        }
+
         // if we are always showing the buttons then we don't have to listen
         // to window events
         if (showbuttons === ShowButtonsWhen.ALWAYS) {
@@ -582,7 +594,7 @@ WindowButtons.prototype = {
             return;
         }
 
-        // for current_window_maximized we additinally want focus-app
+        // for current_window_maximized we additionally want focus-app
         // NOTE: this fires twice per focus-event, the first with activeWindow
         // being `null` and the second with it being the newly-focused window.
         // (Unless there is no newly-focused window).
@@ -607,6 +619,8 @@ WindowButtons.prototype = {
     },
 
     enable: function () {
+        this._settings = Convenience.getSettings();
+        this._locked = false;
         //Create boxes for the buttons
         this.rightActor = new St.Bin({ style_class: 'box-bin'});
         this.rightBox = new St.BoxLayout({ style_class: 'button-box' });
@@ -687,11 +701,11 @@ WindowButtons.prototype = {
     },
 
     disable: function () {
-        this._leftContainer.remove_actor(this.leftActor);
-        this._rightContainer.remove_actor(this.rightActor);
+        this.leftActor.destroy();
+        this.rightActor.destroy();
 
         /* disconnect all signals */
-        this._settings.disconnectAll();
+        this._settings = null;
         this._disconnectSignals();
     }
 };

@@ -1,12 +1,12 @@
 There are four branches:
-* master
-* gnome3.4
-* gnome3.2
-* gnome3.2-dev
+* master          [dev for gnome3.4+]
+* gnome3.4        [stable for gnome3.4+ (--3.6 currently)]
+* gnome3.2        [stable for gnome3.2]
+* gnome3.2-dev    [dev for gnome3.2]
 
 The gnome3.2 and gnome3.4 branches are where the *stable* code for these respective versions of the extension live. They are quite different (for example GNOME 3.4 version can use gnome-shell-extension-prefs, whereas GNOME 3.2 you're stuck with editing the extensin.js file).
 
-The master branch is for DEVELOPMENT of GNOME 3.4 code. Push to branch gnome3.4 when stable.
+The master branch is for DEVELOPMENT of GNOME 3.4+ code. Push to branch gnome3.4+ when stable.
 
 The gnome3.2-dev branch is for DEVELOPMENT of GNOME 3.2 code. Push to branch gnome3.2 when stable.
 
