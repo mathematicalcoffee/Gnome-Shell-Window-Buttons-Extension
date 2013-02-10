@@ -159,7 +159,12 @@ See `themes/default/style.css` for more information.
 
 Changelog
 ---------
-v5/v5 on e.g.o:
+v??:
+* maximized windows that are minimized shouldn't count towards WINDOWS_MAXIMIZED (#9; deadalnix)
+* fixed phantom space when no buttons are showing (#10; deadalnix)
+* ....
+
+v5/v6 on e.g.o:
 
 * Buttons hide in the Overview (cfclavijo; #6)
 * New theme Ambiance-Blue (cfclavijo; #6)
