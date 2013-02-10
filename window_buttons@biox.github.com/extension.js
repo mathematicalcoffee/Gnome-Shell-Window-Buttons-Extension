@@ -345,7 +345,8 @@ WindowButtons.prototype = {
             // show iff *any* window is (fully) maximized
             case ShowButtonsWhen.ANY_WINDOW_MAXIMIZED:
                 for (let i = 0; i < windows.length; ++i) {
-                    if (windows[i].get_maximized() === Meta.MaximizeFlags.BOTH) {
+                    if (windows[i].get_maximized() === Meta.MaximizeFlags.BOTH &&
+                            !windows[i].minimized) {
                         show = true;
                         break;
                     }
