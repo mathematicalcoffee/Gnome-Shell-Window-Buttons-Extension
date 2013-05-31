@@ -1,7 +1,7 @@
 const GLib = imports.gi.GLib;
 const Gio = imports.gi.Gio;
 
-let theme_dirs = GLib.get_system_data_dirs();
+let theme_dirs = GLib.get_system_data_dirs().map(function (t) { return GLib.build_filenamev([t, 'themes']); });
 theme_dirs.unshift(GLib.build_filenamev([GLib.get_home_dir(), '.themes']));
 
 function error(message) {
