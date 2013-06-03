@@ -356,7 +356,7 @@ function parse_draw_op_element(el, cr, env) {
                 // whereas theme.c does the actual drawing.
                 let n = cols.length();
                 for (let j = 0; j < n; ++j) {
-                    obj.cols.push(parse_color(cols[j].@value.toString(), env));
+                    obj.cols.push(parse_colour(cols[j].@value.toString(), env));
                 }
 
 
