@@ -1,6 +1,6 @@
 There are four branches:
 * master          [dev for gnome3.4+]
-* gnome3.4        [stable for gnome3.4+ (--3.6 currently)]
+* gnome3.4        [stable for gnome3.4+ (--3.8 currently)]
 * gnome3.2        [stable for gnome3.2]
 * gnome3.2-dev    [dev for gnome3.2]
 

@@ -12,23 +12,21 @@ Supports custom button layouts and css theming!
   </tr>
 </table>
 
-Configure with `gnome-shell-extension-prefs` (GNOME 3.4) or by editing `extension.js` (GNOME 3.2).
+Configure with `gnome-shell-extension-prefs` (GNOME 3.4+) or by editing `extension.js` (GNOME 3.2).
 
 **Author**: biox (Josiah Messiah)   
 **Maintainers**: mathematical.coffee <mathematical.coffee@gmail.com>   
-**Contributors**:
+**Contributors**: [Many (thankyou!)](https://github.com/mathematicalcoffee/Gnome-Shell-Window-Buttons-Extension/contributors)
 
-* barravi <https://github.com/barravi>
-* tiper <https://github.com/tiper>
-* arkan duthrey <arkan1313@gmail.com>
-
-Note - the [mathematicalcoffee fork](https://github.com/mathematicalcoffee/Gnome-Shell-Window-Buttons-Extension) of this extension is where development happens, and it all then gets pushed to the original [biox repository](https://github.com/biox/Gnome-Shell-Window-Buttons-Extension).
+Note - the [mathematicalcoffee fork](https://github.com/mathematicalcoffee/Gnome-Shell-Window-Buttons-Extension) of this extension is where development happens, and it all then gets pushed to the original [biox repository](https://github.com/biox/Gnome-Shell-Window-Buttons-Extension) when stable.
 
 Installation
 ------------
 **NEW**: Install it from [extensions.gnome.org](https://extensions.gnome.org/extension/426/window-buttons/).
 
-### GNOME 3.4
+If you wish to install manually (i.e. from the repository):
+
+### GNOME 3.4, 3.6, 3.8
 Either download the .zip file from the [Downloads page](https://github.com/biox/Gnome-Shell-Window-Buttons-Extension/downloads) or checkout the code to the `gnome3.4` branch.
 
 If you have the .zip file, go to Gnome tweak tools --> Shell Extensions --> Install from zip file --> choose the zip file.
@@ -36,8 +34,9 @@ If you have the .zip file, go to Gnome tweak tools --> Shell Extensions --> Inst
 If you have the source code, copy the folder to the appropriate place:
 
 	$ cp window_buttons@biox.github.com ~/.local/share/gnome-shell/extensions/
+    $ gnome-shell-extension-tool -e window_buttons@biox.github.com 
 
-Configure using `gnome-shell-extension-prefs`. No shell restarts required.
+Configure using `gnome-shell-extension-prefs`.
 
 ### GNOME 3.2
 As above (but if you are checking out the code, use the `gnome3.2` branch).
@@ -159,10 +158,15 @@ See `themes/default/style.css` for more information.
 
 Changelog
 ---------
-v??:
+v10 on e.g.o:
+* GNOME 3.8 support added
 * maximized windows that are minimized shouldn't count towards WINDOWS_MAXIMIZED (#9; deadalnix)
 * fixed phantom space when no buttons are showing (#10; deadalnix)
-* ....
+
+v7/8/9 on e.g.o:
+
+* quick fixes to get disable/re-enable working
+* typos
 
 v5/v6 on e.g.o:
 
