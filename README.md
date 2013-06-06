@@ -24,18 +24,21 @@ Installation
 ------------
 **NEW**: Install it from [extensions.gnome.org](https://extensions.gnome.org/extension/426/window-buttons/).
 
-If you wish to install manually (i.e. from the repository):
+If you wish to install manually (i.e. from the repository, as Github no longer has download pages):
 
 ### GNOME 3.4, 3.6, 3.8
-Either download the .zip file from the [Downloads page](https://github.com/biox/Gnome-Shell-Window-Buttons-Extension/downloads) or checkout the code to the `gnome3.4` branch.
+Checkout the code to the `gnome3.4` branch:
 
-If you have the .zip file, go to Gnome tweak tools --> Shell Extensions --> Install from zip file --> choose the zip file.
+    git clone https://github.com/mathematicalcoffee/Gnome-Shell-Window-Buttons-Extension.git
+    cd Gnome-Shell-Window-Buttons-Extension
+    git checkout gnome3.4
+    make # <-- very important!
+    # copy to extensions directory
+    cp -r window_buttons@biox.github.com ~/.local/share/gnome-shell/extensions
+    # install
+    gnome-shell-extension-tool -e window_buttons@biox.github.com 
 
-If you have the source code, copy the folder to the appropriate place:
-
-	$ cp window_buttons@biox.github.com ~/.local/share/gnome-shell/extensions/
-    $ gnome-shell-extension-tool -e window_buttons@biox.github.com 
-
+Now restart gnome-shell and enable the extension in `gnome-tweak-tool`.
 Configure using `gnome-shell-extension-prefs`.
 
 ### GNOME 3.2
@@ -140,8 +143,8 @@ Themes live in the `themes`. The name of the directory is the name of the theme.
 If you want to make your own theme, you have to add a folder into the `themes` directory.
 To start off, copy the `default` theme:
 
-    $ cd window_buttons@biox.github.com/themes
-    $ cp -r default my_new_theme 
+    cd window_buttons@biox.github.com/themes
+    cp -r default my_new_theme 
 
 Then, edit the `style.css` file to style the window buttons. 
 At a bare minimum, you need to define styles for `.window-button`, `.minimize`, `.maximize` and `.close`.
