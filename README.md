@@ -5,10 +5,10 @@ Supports custom button layouts and css theming!
 
 <table>
   <tr>
-    <td><img src="https://raw.github.com/cfclavijo/Gnome-Shell-Window-Buttons-Extension/gnome3.4/screenshot.png" alt="Screenshot" /></td>
+    <td><img src="https://raw.github.com/mathematicalcoffee/Gnome-Shell-Window-Buttons-Extension/gnome3.4/screenshot.png" alt="Screenshot" /></td>
   </tr>
   <tr>
-    <td>Current (31/Aug/2012) themes, top-to-bottom: default, Ambiance, Ambiance-Blue, Radiance, Zukwito, Zukwito-Dark</td>
+    <td>Current (06/Jun/2013) themes, top-to-bottom: Ambiance-Blue, Ambiance, default, Radiance, UniMetro-Black, UniMetro, Zukitwo-Dark, Zukitwo</td>
   </tr>
 </table>
 
@@ -156,12 +156,21 @@ for each button, and the picture should have the symbol for the button in it (i.
 
 See `themes/default/style.css` for more information.
 
+Also, feel free to add a file `ABOUT` with credits/information.
+
+(The 'screenshot.png' image displayed on this readme was generated using ImageMagick:
+
+    convert -background black -gravity center -append `find window_buttons@biox.github.com/themes -iname screenshot.png | sort` screenshot.png
+
+)
+
 Changelog
 ---------
-v10 on e.g.o:
+v10 on e.g.o (GNOME 3.4, 3.6, 3.8), dev-version 2.3:
 * GNOME 3.8 support added
 * maximized windows that are minimized shouldn't count towards WINDOWS_MAXIMIZED (#9; deadalnix)
 * fixed phantom space when no buttons are showing (#10; deadalnix)
+* new themes UniMetro and UniMetro-Dark (jsjinga)
 
 v7/8/9 on e.g.o:
 
