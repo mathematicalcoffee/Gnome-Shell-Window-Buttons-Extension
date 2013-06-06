@@ -427,7 +427,8 @@ WindowButtons.prototype = {
             // show iff *any* window is (fully) maximized
             case ShowButtonsWhen.ANY_WINDOW_MAXIMIZED:
                 for (let i = 0; i < windows.length; ++i) {
-                    if (windows[i].get_maximized() === Meta.MaximizeFlags.BOTH) {
+                    if (windows[i].get_maximized() === Meta.MaximizeFlags.BOTH &&
+                            !windows[i].minimized) {
                         show = true;
                         break;
                     }
@@ -448,17 +449,22 @@ WindowButtons.prototype = {
             }
         }
 
-        // if the actors already match `show` don't do anything.
-        if (show === this.leftActor.visible &&
-                show === this.rightActor.visible) {
-            return false;
+        var showLeft = show && (this.leftBox.get_children().length > 0);
+        if (showLeft !== this.leftActor.visible) {
+            if (showLeft) {
+                this.leftActor.show();
+            } else {
+                this.leftActor.hide();
+            }
         }
-        if (show) {
-            this.leftActor.show();
-            this.rightActor.show();
-        } else {
-            this.leftActor.hide();
-            this.rightActor.hide();
+
+        var showRight = show && (this.rightBox.get_children().length > 0);
+        if (showRight !== this.rightActor.visible) {
+            if (showRight) {
+                this.rightActor.show();
+            } else {
+                this.rightActor.hide();
+            }
         }
         return false;
     },
