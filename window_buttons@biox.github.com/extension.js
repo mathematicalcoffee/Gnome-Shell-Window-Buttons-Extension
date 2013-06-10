@@ -307,6 +307,9 @@ WindowButtons.prototype = {
      * CURRENT_WINDOW_MAXIMIZED, ANY_WINDOW_MAXIMIZED, ANY_WINDOW_FOCUSED
      */
     _windowChanged: function () {
+        if (!this._leftActor && !this._rightActor) {
+            return;
+        }
         let workspace = global.screen.get_active_workspace(),
             windows = workspace.list_windows().filter(function (w) {
                 return w.get_window_type() !== Meta.WindowType.DESKTOP;
@@ -703,12 +706,16 @@ WindowButtons.prototype = {
         // Also, show or hide buttons after a delay to let all the windows
         // be properly "there".
         Mainloop.idle_add(Lang.bind(this, function () {
-            this._leftContainer.insert_child_at_index(this.leftActor,
-                    getPosition(this._leftContainer, leftpos,
-                        getNChildren(this._leftContainer)));
-            this._rightContainer.insert_child_at_index(this.rightActor,
-                    getPosition(this._rightContainer,
-                        rightpos, getNChildren(this._rightContainer)));
+            if (this.leftActor) {
+                this._leftContainer.insert_child_at_index(this.leftActor,
+                        getPosition(this._leftContainer, leftpos,
+                            getNChildren(this._leftContainer)));
+            }
+            if (this.rightActor) {
+                this._rightContainer.insert_child_at_index(this.rightActor,
+                        getPosition(this._rightContainer,
+                            rightpos, getNChildren(this._rightContainer)));
+            }
 
             // Show or hide buttons
             this._windowChanged();
@@ -719,16 +726,22 @@ WindowButtons.prototype = {
     },
 
     disable: function () {
-        this.leftActor.destroy();
-        this.rightActor.destroy();
-
         /* disconnect all signals */
         let i = this._settingsSignals.length;
         while (i--) {
             this._settings.disconnect(this._settingsSignals.pop());
         }
-        this._settings = null;
+
+        this.leftActor.destroy();
+        this.rightActor.destroy();
+        // for some reason, not removed from the status area?
+        this.leftActor.unparent();
+        this.rightActor.unparent();
+        this.leftActor = null;
+        this.rightActor = null;
         this._disconnectSignals();
+
+        //this._settings = null;
     }
 };
 
