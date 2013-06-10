@@ -169,7 +169,12 @@ Also, feel free to add a file `ABOUT` with credits/information.
 
 Changelog
 ---------
+v11 on e.g.o (GNOME 3.8), dev-version 2.3.1:
+
+* fix bug where activities button would drift to the right upon lock/unlock (#18)
+
 v10 on e.g.o (GNOME 3.4, 3.6, 3.8), dev-version 2.3:
+
 * GNOME 3.8 support added
 * maximized windows that are minimized shouldn't count towards WINDOWS_MAXIMIZED (#9; deadalnix)
 * fixed phantom space when no buttons are showing (#10; deadalnix)
