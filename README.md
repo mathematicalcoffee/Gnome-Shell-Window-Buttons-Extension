@@ -1,12 +1,16 @@
 Window Buttons Extension
 ================================
 
-**THIS FORK IS NO LONGER MAINTAINED**. The new repository for this extension (and issues) is [**@danielkza**'s fork](https://github.com/danielkza/Gnome-Shell-Window-Buttons-Extension). Thanks to Daniel for taking up maintainership!
+#### THIS FORK IS NO LONGER MAINTAINED
+
+The new repository for this extension (and issues) is [**@danielkza**'s fork](https://github.com/danielkza/Gnome-Shell-Window-Buttons-Extension). Thanks to Daniel for taking up maintainership!
 
 **Author**: biox (Josiah Messiah)   
 **Maintainer**: Daniel Miranda <danielkza2@gmail.com>  
 **Previous Maintainer**: <mathematical.coffee mathematical.coffee@gmail.com>  
 **Contributors**: [Many (thankyou!)](https://github.com/mathematicalcoffee/Gnome-Shell-Window-Buttons-Extension/contributors)
+
+
 -----
 
 This is an extension for Gnome 3 which puts minimize, maximize and close buttons in the top panel.
